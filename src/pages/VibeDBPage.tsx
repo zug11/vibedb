@@ -761,8 +761,8 @@ const VibeDBPage = () => {
         const isRelated = hoveredTableId && (sourceTable.id === hoveredTableId || targetTable.id === hoveredTableId);
         const isSelected = connectionMode?.sourceTableId === sourceTable.id && connectionMode?.sourceColumnId === col.id;
         let stroke = col.fkStatus === "resolved" ? "hsl(var(--accent))" : "hsl(var(--destructive))";
-        let opacity = 0.5;
-        let width = 2;
+        let opacity = 0.7;
+        let width = 2.5;
         if (hoveredTableId) {
           if (isRelated) { opacity = 1; width = 3; } else { opacity = 0.15; }
         }
@@ -955,7 +955,7 @@ const VibeDBPage = () => {
             </div>
           )}
 
-          <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
+          <svg className="pointer-events-none absolute inset-0 z-20" style={{ width: "100%", height: "100%" }} overflow="visible">
             <g transform={`translate(${view.x}, ${view.y}) scale(${view.zoom})`}>
               {connectionPaths}
             </g>
