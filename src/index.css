@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@100..900&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 
 @layer base {
   :root {
@@ -143,4 +143,31 @@
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+  .mask-fade-edges { mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); }
+
+  .editor-content ::selection {
+    background-color: #c7d2fe;
+    color: inherit;
+  }
+
+  .editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: hsl(var(--muted-foreground));
+  }
+}
+
+@media print {
+  @page { margin: 2.5cm; }
+  body * { visibility: hidden; }
+  html, body, #root, .relative { height: auto !important; overflow: visible !important; background: white !important; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; max-width: none !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+  #print-area [contenteditable] { color: black !important; text-shadow: none !important; }
 }
