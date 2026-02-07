@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import VibeDBSidebar from "@/components/vibedb/VibeDBSidebar";
+import SchemaAuditModal from "@/components/vibedb/SchemaAuditModal";
 import {
   generateSQL, generatePrismaSchema, generateDrizzleSchema,
   generateGraphQLTypes, generateCSV,
@@ -523,6 +524,11 @@ const VibeDBPage = () => {
       }
       setAuditReport(prev => prev ? { ...prev, suggestions: prev.suggestions?.filter(s => s !== suggestion) } : prev);
     } catch { addToast("Failed to apply suggestion", "error"); }
+  };
+
+  const handleApplyAllSuggestions = () => {
+    if (!auditReport?.suggestions) return;
+    auditReport.suggestions.forEach(s => handleApplySuggestion(s));
   };
 
   // ─── Batch Edit ───────────────────────────────────────
@@ -1245,69 +1251,14 @@ const VibeDBPage = () => {
       </AnimatePresence>
 
       {/* Audit Modal */}
-      <AnimatePresence>
-        {showAuditModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowAuditModal(false)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="mx-4 w-full max-w-2xl max-h-[80vh] overflow-auto rounded-2xl bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold flex items-center gap-2"><ShieldCheck size={18} /> Schema Audit</h2>
-                <button onClick={() => setShowAuditModal(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary"><X size={16} /></button>
-              </div>
-              {isAuditing ? (
-                <div className="flex items-center justify-center py-12"><Loader2 size={32} className="animate-spin text-accent" /><span className="ml-3 text-sm text-muted-foreground">Auditing schema...</span></div>
-              ) : auditReport ? (
-                <div className="space-y-4">
-                  {(auditReport.score || auditReport.confidence_score) && (
-                    <div className="flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3">
-                      <div className="text-3xl font-bold text-accent">{auditReport.score || auditReport.confidence_score}</div>
-                      <div className="text-sm text-muted-foreground">/ 100 confidence score</div>
-                    </div>
-                  )}
-                  {auditReport.lintIssues && auditReport.lintIssues.length > 0 && (
-                    <div><h3 className="text-sm font-bold mb-2 text-muted-foreground">Naming Issues</h3>
-                      <div className="space-y-1">{auditReport.lintIssues.map((issue, i) => (
-                        <div key={i} className="flex items-start gap-2 rounded-lg bg-primary/5 px-3 py-2 text-xs"><span className="text-primary font-bold mt-0.5">⚠</span><span>{issue.message}</span></div>
-                      ))}</div></div>
-                  )}
-                  {auditReport.fkIssues && auditReport.fkIssues.length > 0 && (
-                    <div><h3 className="text-sm font-bold mb-2 text-muted-foreground">Foreign Key Issues</h3>
-                      <div className="space-y-1">{auditReport.fkIssues.map((issue, i) => (
-                        <div key={i} className="flex items-start gap-2 rounded-lg bg-destructive/5 px-3 py-2 text-xs"><span className="text-destructive font-bold mt-0.5">✕</span><span>{issue.message}</span></div>
-                      ))}</div></div>
-                  )}
-                  {auditReport.strengths && auditReport.strengths.length > 0 && (
-                    <div><h3 className="text-sm font-bold mb-2 text-muted-foreground">Strengths</h3>
-                      <div className="space-y-1">{auditReport.strengths.map((s, i) => (
-                        <div key={i} className="flex items-start gap-2 rounded-lg bg-accent/5 px-3 py-2 text-xs"><span className="text-accent font-bold mt-0.5">✓</span><span>{s}</span></div>
-                      ))}</div></div>
-                  )}
-                  {auditReport.risks && auditReport.risks.length > 0 && (
-                    <div><h3 className="text-sm font-bold mb-2 text-muted-foreground">Risks</h3>
-                      <div className="space-y-1">{auditReport.risks.map((r, i) => (
-                        <div key={i} className="flex items-start gap-2 rounded-lg bg-destructive/5 px-3 py-2 text-xs"><span className="text-destructive font-bold mt-0.5">⚡</span><span>{r}</span></div>
-                      ))}</div></div>
-                  )}
-                  {auditReport.suggestions && auditReport.suggestions.length > 0 && (
-                    <div><h3 className="text-sm font-bold mb-2 text-muted-foreground">Suggestions</h3>
-                      <div className="space-y-2">{auditReport.suggestions.map((s, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                          <div className="text-xs flex-1">
-                            <span className="font-semibold text-accent">[{s.type}]</span>{" "}
-                            {s.description || s.reason}
-                            {s.target_table && <span className="text-muted-foreground"> → {s.target_table}</span>}
-                          </div>
-                          <button onClick={() => handleApplySuggestion(s)} className="ml-2 flex items-center gap-1 rounded-lg bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent hover:bg-accent/20 transition shrink-0">
-                            <Check size={10} /> Apply
-                          </button>
-                        </div>
-                      ))}</div></div>
-                  )}
-                </div>
-              ) : null}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SchemaAuditModal
+        open={showAuditModal}
+        onClose={() => setShowAuditModal(false)}
+        isAuditing={isAuditing}
+        report={auditReport}
+        onApplySuggestion={handleApplySuggestion}
+        onApplyAll={handleApplyAllSuggestions}
+      />
 
       {/* Toasts */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
