@@ -3,7 +3,7 @@ import {
   Database, Plus, Search, Sparkles, Trash2, X, Loader2, Copy, Check,
   Zap, Download, Lightbulb, RefreshCw, Undo2, Redo2, Eye,
   Wand2, Terminal, ArrowLeft, LayoutTemplate, ArrowUpDown,
-  Table as TableIcon, Code
+  Table as TableIcon, Code, Upload, ShieldCheck, Edit3, ChevronDown
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
@@ -38,9 +38,124 @@ interface Toast {
   id: number; message: string; type: "info" | "success" | "error";
 }
 
+interface AuditReport {
+  score?: number;
+  issues?: { severity: string; message: string }[];
+  suggestions?: { type: string; target_table?: string; payload?: any; reason: string; description?: string }[];
+  lintIssues?: { type: string; severity: string; message: string }[];
+  fkIssues?: { type: string; severity: string; message: string }[];
+  strengths?: string[];
+  missing_elements?: string[];
+  risks?: string[];
+  confidence_score?: number;
+}
+
 // ─── Constants ──────────────────────────────────────────
 const COLUMN_TYPES = ["uuid", "varchar", "int", "timestamp", "boolean", "numeric", "text", "jsonb", "decimal", "float"];
 const TABLE_WIDTH = 260;
+
+// ─── Naming Convention Linter ───────────────────────────
+const NAMING_PATTERNS: Record<string, RegExp> = {
+  snake_case: /^[a-z][a-z0-9_]*$/,
+  camelCase: /^[a-z][a-zA-Z0-9]*$/,
+  PascalCase: /^[A-Z][a-zA-Z0-9]*$/,
+};
+
+function lintSchema(tables: TableNode[], convention = "snake_case") {
+  const issues: { type: string; severity: string; message: string }[] = [];
+  const regex = NAMING_PATTERNS[convention];
+  if (!regex) return issues;
+
+  tables.forEach(table => {
+    if (!regex.test(table.name)) {
+      issues.push({ type: "naming", severity: "warning", message: `Table "${table.name}" should be ${convention}` });
+    }
+    table.columns.forEach(col => {
+      if (!regex.test(col.name)) {
+        issues.push({ type: "naming", severity: "warning", message: `Column "${col.name}" in ${table.name} should be ${convention}` });
+      }
+    });
+  });
+  return issues;
+}
+
+// ─── SQL DDL Parser ─────────────────────────────────────
+function parseSQLDDL(sql: string): { tables: Omit<TableNode, "x" | "y">[] } {
+  const tables: Omit<TableNode, "x" | "y">[] = [];
+  const statements = sql.split(/(?=CREATE\s+TABLE)/i).filter(s => s.trim().length > 0);
+
+  statements.forEach(statement => {
+    const nameMatch = statement.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:["'`]?\w+["'`]?\.)?["'`]?(\w+)["'`]?/i);
+    if (!nameMatch) return;
+
+    const tableName = nameMatch[1];
+    const firstParen = statement.indexOf("(");
+    const lastParen = statement.lastIndexOf(")");
+    if (firstParen === -1 || lastParen === -1) return;
+
+    const body = statement.substring(firstParen + 1, lastParen);
+    const cleanBody = body.replace(/\(([^)]+)\)/g, (match) => match.replace(/,/g, "|"));
+    const colLines = cleanBody.split(",").map(s => s.trim()).filter(Boolean);
+
+    const columns: Column[] = [];
+    colLines.forEach(line => {
+      const def = line.replace(/\|/g, ",");
+      if (def.match(/^(CONSTRAINT|PRIMARY|FOREIGN|UNIQUE|INDEX|CHECK)/i)) return;
+
+      const colMatch = def.match(/^\s*["'`]?(\w+)["'`]?\s+(["'`]?\w+["'`]?(?:\([\d\s,]+\))?)/i);
+      if (!colMatch) return;
+
+      const colName = colMatch[1];
+      const rawType = colMatch[2].replace(/[[\]]/g, "").toLowerCase();
+      const isPK = /PRIMARY\s+KEY/i.test(def);
+      const isFK = /REFERENCES/i.test(def);
+      const isNotNull = /NOT\s+NULL/i.test(def);
+      const defaultMatch = def.match(/DEFAULT\s+([^,\s]+)/i);
+
+      let normalizedType = "varchar";
+      if (rawType.includes("int")) normalizedType = "int";
+      else if (rawType.includes("uuid")) normalizedType = "uuid";
+      else if (rawType.includes("time") || rawType.includes("date")) normalizedType = "timestamp";
+      else if (rawType.includes("bool")) normalizedType = "boolean";
+      else if (rawType.includes("decimal") || rawType.includes("numeric")) normalizedType = "numeric";
+      else if (rawType.includes("float") || rawType.includes("real")) normalizedType = "float";
+      else if (rawType.includes("json")) normalizedType = "jsonb";
+      else if (rawType.includes("text")) normalizedType = "text";
+
+      const constraints: { type: string; value?: string }[] = [];
+      if (isPK) constraints.push({ type: "primary" });
+      if (isNotNull && !isPK) constraints.push({ type: "notNull" });
+      if (defaultMatch) constraints.push({ type: "default", value: defaultMatch[1] });
+
+      let linkedTable: string | undefined;
+      let linkedColumn: string | undefined;
+      if (isFK) {
+        const fkMatch = def.match(/REFERENCES\s+["'`]?(\w+)["'`]?(?:\s*\(["'`]?(\w+)["'`]?\))?/i);
+        if (fkMatch) {
+          linkedTable = fkMatch[1];
+          linkedColumn = fkMatch[2] || "id";
+        }
+      }
+
+      columns.push({
+        id: uuidv4(),
+        name: colName,
+        type: normalizedType,
+        isForeignKey: isFK,
+        linkedTable,
+        linkedColumn,
+        constraints,
+        fkStatus: isFK ? "unresolved" : "resolved",
+      });
+    });
+
+    if (columns.length > 0) {
+      tables.push({ id: uuidv4(), name: tableName, columns });
+    }
+  });
+
+  return { tables };
+}
 
 // ─── AI Helper ──────────────────────────────────────────
 async function callAI(type: string, prompt: string, context?: string) {
@@ -51,7 +166,6 @@ async function callAI(type: string, prompt: string, context?: string) {
   if (data?.error) throw new Error(data.error);
   
   let result = data?.result || "";
-  // Clean markdown code blocks
   result = result.replace(/```json\n?/g, "").replace(/```sql\n?/g, "").replace(/```\n?/g, "").trim();
   return result;
 }
@@ -164,6 +278,20 @@ const VibeDBPage = () => {
   const [draggingTable, setDraggingTable] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // New feature states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [auditReport, setAuditReport] = useState<AuditReport | null>(null);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchPrompt, setBatchPrompt] = useState("");
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [showAddTableMenu, setShowAddTableMenu] = useState(false);
+  const [aiTablePrompt, setAiTablePrompt] = useState("");
+  const [isAddingAiTable, setIsAddingAiTable] = useState(false);
+
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const addToast = useCallback((message: string, type: Toast["type"] = "info") => {
@@ -179,6 +307,10 @@ const VibeDBPage = () => {
         setShowSqlModal(false);
         setShowPlayground(false);
         setEditingTable(null);
+        setShowImportModal(false);
+        setShowAuditModal(false);
+        setShowBatchModal(false);
+        setShowAddTableMenu(false);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); undo(); }
       if ((e.metaKey || e.ctrlKey) && e.key === "y") { e.preventDefault(); redo(); }
@@ -209,7 +341,6 @@ const VibeDBPage = () => {
         }));
         setCanvasItems(tables);
         addToast(`Generated ${tables.length} tables`, "success");
-        // Center view
         if (tables.length > 0) {
           const avgX = tables.reduce((a: number, t: TableNode) => a + t.x, 0) / tables.length;
           const avgY = tables.reduce((a: number, t: TableNode) => a + t.y, 0) / tables.length;
@@ -290,6 +421,208 @@ const VibeDBPage = () => {
     addToast(`Inferred ${count} relationships`, "success");
   };
 
+  // ─── SQL Import ───────────────────────────────────────
+  const handleImport = () => {
+    try {
+      const result = parseSQLDDL(importText);
+      if (result.tables.length === 0) {
+        addToast("No tables found in SQL", "error");
+        return;
+      }
+      const processed = result.tables.map((t, i) => ({
+        ...t,
+        x: (-view.x / view.zoom) + 100 + (i % 3) * 300,
+        y: (-view.y / view.zoom) + 100 + Math.floor(i / 3) * 300,
+      })) as TableNode[];
+
+      // Resolve FKs
+      const allTables = [...canvasItems, ...processed];
+      const tableMap = new Map<string, string>();
+      allTables.forEach(t => tableMap.set(t.name.toLowerCase(), t.id));
+
+      const resolved = processed.map(t => ({
+        ...t,
+        columns: t.columns.map(col => {
+          if (col.isForeignKey && col.linkedTable) {
+            const targetId = tableMap.get(col.linkedTable.toLowerCase());
+            return { ...col, linkedTableId: targetId, fkStatus: targetId ? "resolved" : "unresolved" };
+          }
+          return col;
+        }),
+      }));
+
+      setCanvasItems(prev => [...prev, ...resolved]);
+      setShowImportModal(false);
+      setImportText("");
+      addToast(`Imported ${result.tables.length} tables`, "success");
+    } catch (err: any) {
+      addToast("Import failed: " + err.message, "error");
+    }
+  };
+
+  // ─── Schema Audit ─────────────────────────────────────
+  const handleAudit = async () => {
+    if (canvasItems.length === 0) { addToast("Add tables first", "error"); return; }
+    setShowAuditModal(true);
+    setIsAuditing(true);
+    setAuditReport(null);
+
+    try {
+      const lintIssues = lintSchema(canvasItems);
+      const fkIssues: { type: string; severity: string; message: string }[] = [];
+      canvasItems.forEach(table => {
+        table.columns.forEach(col => {
+          if (col.isForeignKey && col.fkStatus !== "resolved") {
+            fkIssues.push({ type: "fk", severity: "error", message: `Unresolved FK: ${table.name}.${col.name} → ${col.linkedTable}` });
+          }
+        });
+      });
+
+      const schema = {
+        user_goal: prompt,
+        active_tables: canvasItems.map(t => ({
+          name: t.name,
+          columns: t.columns.map(c => ({ name: c.name, type: c.type, isForeignKey: c.isForeignKey, linkedTable: c.linkedTable, constraints: c.constraints })),
+        })),
+        lint_issues: lintIssues,
+        fk_issues: fkIssues,
+      };
+
+      const resultStr = await callAI("inspect-schema", JSON.stringify(schema), JSON.stringify(schema));
+      const result = JSON.parse(resultStr);
+      setAuditReport({ ...result, lintIssues, fkIssues });
+    } catch {
+      addToast("Audit failed", "error");
+      setAuditReport({ lintIssues: [], fkIssues: [], issues: [{ severity: "error", message: "Failed to run AI audit" }] });
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  const handleApplySuggestion = (suggestion: AuditReport["suggestions"] extends (infer U)[] ? U : never) => {
+    try {
+      if (suggestion.type === "add_column" && suggestion.target_table && suggestion.payload) {
+        setCanvasItems(prev => prev.map(t => {
+          if (t.name.toLowerCase() === suggestion.target_table?.toLowerCase()) {
+            return {
+              ...t,
+              columns: [...t.columns, {
+                id: uuidv4(),
+                name: String(suggestion.payload.name || "new_column"),
+                type: String(suggestion.payload.type || "varchar"),
+                fkStatus: "resolved",
+                constraints: [],
+                description: String(suggestion.payload.description || suggestion.reason || ""),
+              }],
+            };
+          }
+          return t;
+        }));
+        addToast("Suggestion applied!", "success");
+      } else if (suggestion.type === "add_table" && suggestion.payload) {
+        const newTable: TableNode = {
+          id: uuidv4(),
+          name: suggestion.payload.name || "new_table",
+          x: (-view.x / view.zoom) + 200,
+          y: (-view.y / view.zoom) + 200,
+          columns: (suggestion.payload.columns || []).map((c: any) => ({
+            ...c,
+            id: uuidv4(),
+            fkStatus: "resolved",
+            constraints: c.constraints || [],
+          })),
+        };
+        setCanvasItems(prev => [...prev, newTable]);
+        addToast("Table added!", "success");
+      } else if (suggestion.type === "add_index") {
+        addToast("Index suggestion noted", "info");
+      }
+      // Remove applied suggestion
+      setAuditReport(prev => prev ? {
+        ...prev,
+        suggestions: prev.suggestions?.filter(s => s !== suggestion),
+      } : prev);
+    } catch {
+      addToast("Failed to apply suggestion", "error");
+    }
+  };
+
+  // ─── Batch Edit ───────────────────────────────────────
+  const handleBatchCommand = async () => {
+    if (!batchPrompt) return;
+    setIsBatchProcessing(true);
+    setBatchError(null);
+    try {
+      const schemaStr = JSON.stringify(canvasItems.map(t => ({
+        id: t.id, name: t.name,
+        columns: t.columns.map(c => ({ name: c.name, type: c.type, id: c.id, isForeignKey: c.isForeignKey, linkedTable: c.linkedTable, linkedColumn: c.linkedColumn })),
+      })));
+
+      const resultStr = await callAI("batch-command", batchPrompt, schemaStr);
+      const result = JSON.parse(resultStr);
+
+      if (result?.tables) {
+        setCanvasItems(prev => {
+          return result.tables.map((newT: any) => {
+            const existing = prev.find(p => p.id === newT.id) || prev.find(p => p.name === newT.name);
+            const x = existing ? existing.x : 50 + Math.random() * 200;
+            const y = existing ? existing.y : 50 + Math.random() * 200;
+            const columns = (newT.columns || []).map((c: any) => {
+              const existingC = existing?.columns.find((ec: Column) => ec.id === c.id || ec.name === c.name);
+              return { ...c, id: existingC?.id || c.id || uuidv4(), fkStatus: c.isForeignKey ? "resolved" : "resolved", constraints: c.constraints || [] };
+            });
+            return { ...newT, id: existing?.id || newT.id || uuidv4(), x, y, columns };
+          });
+        });
+        addToast("Batch command executed", "success");
+        setShowBatchModal(false);
+        setBatchPrompt("");
+      }
+    } catch (e: any) {
+      let msg = "Batch processing failed";
+      if (e.message?.includes("JSON")) msg = "AI returned invalid data. Try a simpler command.";
+      else if (e.message?.includes("API")) msg = "AI service unavailable. Try again.";
+      else msg = e.message || msg;
+      setBatchError(msg);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
+  // ─── AI Add Table ─────────────────────────────────────
+  const handleAiAddTable = async () => {
+    if (!aiTablePrompt.trim()) return;
+    setIsAddingAiTable(true);
+    try {
+      const existingTables = canvasItems.map(t => t.name).join(", ");
+      const resultStr = await callAI(
+        "generate-schema",
+        `Existing tables: [${existingTables}]. Generate 1 new table for: "${aiTablePrompt}". Return JSON with "tables" key containing exactly 1 table.`
+      );
+      const result = JSON.parse(resultStr);
+      if (result?.tables?.[0]) {
+        const t = result.tables[0];
+        const newTable: TableNode = {
+          ...t,
+          id: uuidv4(),
+          x: (-view.x / view.zoom) + 200,
+          y: (-view.y / view.zoom) + 200,
+          columns: (t.columns || []).map((c: any) => ({
+            ...c, id: uuidv4(), fkStatus: "resolved", constraints: c.constraints || [],
+          })),
+        };
+        setCanvasItems(prev => [...prev, newTable]);
+        addToast(`Generated table: ${newTable.name}`, "success");
+        setAiTablePrompt("");
+        setShowAddTableMenu(false);
+      }
+    } catch {
+      addToast("Failed to generate table", "error");
+    } finally {
+      setIsAddingAiTable(false);
+    }
+  };
+
   // ─── Query Playground ─────────────────────────────────
   const handleGenerateQuery = async () => {
     if (!queryPrompt) return;
@@ -318,15 +651,13 @@ const VibeDBPage = () => {
       ],
     };
     setCanvasItems(prev => [...prev, newTable]);
+    setShowAddTableMenu(false);
   };
 
   const deleteTable = (id: string) => setCanvasItems(prev => prev.filter(t => t.id !== id));
   const updateTableName = (id: string, name: string) => setCanvasItems(prev => prev.map(t => t.id === id ? { ...t, name } : t));
   const addColumn = (tableId: string) => setCanvasItems(prev => prev.map(t =>
     t.id === tableId ? { ...t, columns: [...t.columns, { id: uuidv4(), name: "new_col", type: "varchar", fkStatus: "resolved", constraints: [] }] } : t
-  ));
-  const updateColumn = (tableId: string, colId: string, updates: Partial<Column>) => setCanvasItems(prev => prev.map(t =>
-    t.id === tableId ? { ...t, columns: t.columns.map(c => c.id === colId ? { ...c, ...updates } : c) } : t
   ));
   const deleteColumn = (tableId: string, colId: string) => setCanvasItems(prev => prev.map(t =>
     t.id === tableId ? { ...t, columns: t.columns.filter(c => c.id !== colId) } : t
@@ -345,11 +676,7 @@ const VibeDBPage = () => {
     const startView = { ...view };
 
     const handleMove = (ev: MouseEvent) => {
-      setView({
-        x: startView.x + (ev.clientX - startX),
-        y: startView.y + (ev.clientY - startY),
-        zoom: startView.zoom,
-      });
+      setView({ x: startView.x + (ev.clientX - startX), y: startView.y + (ev.clientY - startY), zoom: startView.zoom });
     };
     const handleUp = () => {
       window.removeEventListener("mousemove", handleMove);
@@ -365,28 +692,20 @@ const VibeDBPage = () => {
     if (!table) return;
     const canvasRect = canvasRef.current?.getBoundingClientRect();
     if (!canvasRect) return;
-
     const tableScreenX = table.x * view.zoom + view.x;
     const tableScreenY = table.y * view.zoom + view.y;
-
     setDraggingTable(tableId);
-    setDragOffset({
-      x: e.clientX - canvasRect.left - tableScreenX,
-      y: e.clientY - canvasRect.top - tableScreenY,
-    });
+    setDragOffset({ x: e.clientX - canvasRect.left - tableScreenX, y: e.clientY - canvasRect.top - tableScreenY });
   };
 
   useEffect(() => {
     if (!draggingTable) return;
-
     const handleMove = (e: MouseEvent) => {
       const canvasRect = canvasRef.current?.getBoundingClientRect();
       if (!canvasRect) return;
       const newX = (e.clientX - canvasRect.left - dragOffset.x - view.x) / view.zoom;
       const newY = (e.clientY - canvasRect.top - dragOffset.y - view.y) / view.zoom;
-      setCanvasItems(prev => prev.map(t =>
-        t.id === draggingTable ? { ...t, x: newX, y: newY } : t
-      ));
+      setCanvasItems(prev => prev.map(t => t.id === draggingTable ? { ...t, x: newX, y: newY } : t));
     };
     const handleUp = () => setDraggingTable(null);
     window.addEventListener("mousemove", handleMove);
@@ -461,15 +780,60 @@ const VibeDBPage = () => {
 
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-2">
-        <button onClick={addManualTable} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
-          <Plus size={14} /> Add Table
-        </button>
+        {/* Add Table with chevron */}
+        <div className="relative">
+          <div className="flex rounded-lg overflow-hidden border border-border">
+            <button onClick={addManualTable} className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
+              <Plus size={14} /> Add Table
+            </button>
+            <button
+              onClick={() => setShowAddTableMenu(!showAddTableMenu)}
+              className="flex items-center justify-center bg-secondary px-1.5 py-1.5 text-secondary-foreground hover:bg-secondary/80 transition border-l border-border"
+            >
+              <ChevronDown size={12} />
+            </button>
+          </div>
+          {showAddTableMenu && (
+            <div className="absolute top-full left-0 mt-1 w-72 bg-card border border-border shadow-xl rounded-xl p-3 z-50 space-y-2">
+              <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Sparkles size={12} /> AI Generate Table
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  value={aiTablePrompt}
+                  onChange={e => setAiTablePrompt(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAiAddTable()}
+                  placeholder="e.g. 'user notifications'"
+                  className="flex-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-primary"
+                />
+                <button
+                  onClick={handleAiAddTable}
+                  disabled={isAddingAiTable || !aiTablePrompt.trim()}
+                  className="flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-accent-foreground disabled:opacity-50"
+                >
+                  {isAddingAiTable ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <button onClick={handleAutoLayout} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
           <LayoutTemplate size={14} /> Auto Layout
         </button>
         <button onClick={handleSmartInference} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
           <Lightbulb size={14} /> Infer Relations
         </button>
+        <button onClick={() => setShowImportModal(true)} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
+          <Upload size={14} /> Import
+        </button>
+        <button onClick={() => setShowBatchModal(true)} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
+          <Edit3 size={14} /> Batch Edit
+        </button>
+        <button onClick={handleAudit} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
+          {isAuditing ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Audit
+        </button>
+
         <div className="flex-1" />
         <button onClick={() => setShowPlayground(!showPlayground)} className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground hover:bg-secondary/80 transition">
           <Terminal size={14} /> Query Lab
@@ -481,14 +845,12 @@ const VibeDBPage = () => {
 
       {/* Canvas */}
       <div className="relative flex-1 overflow-hidden" ref={canvasRef} onMouseDown={handleCanvasMouseDown} onWheel={handleWheel}>
-        {/* Grid */}
         <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{
           backgroundImage: "radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)",
           backgroundSize: `${20 * view.zoom}px ${20 * view.zoom}px`,
           backgroundPosition: `${view.x}px ${view.y}px`,
         }} />
 
-        {/* Tables & Lines */}
         <svg className="pointer-events-none absolute inset-0" style={{ width: "100%", height: "100%" }}>
           <g transform={`translate(${view.x}, ${view.y}) scale(${view.zoom})`}>
             {fkLines.map(line => line && (
@@ -512,7 +874,6 @@ const VibeDBPage = () => {
               className="absolute cursor-grab select-none rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
               style={{ left: table.x, top: table.y, width: TABLE_WIDTH }}
             >
-              {/* Table Header */}
               <div className="flex items-center justify-between rounded-t-xl bg-secondary/50 px-3 py-2">
                 {editingTable === table.id ? (
                   <input
@@ -537,7 +898,6 @@ const VibeDBPage = () => {
                 </div>
               </div>
 
-              {/* Columns */}
               {table.columns.map(col => (
                 <div key={col.id} className="group flex items-center gap-1 border-t border-border px-3 py-1 text-[11px]">
                   <span className="font-mono font-semibold text-foreground">{col.name}</span>
@@ -554,7 +914,6 @@ const VibeDBPage = () => {
                 </div>
               ))}
 
-              {/* Add Column */}
               <button
                 onClick={e => { e.stopPropagation(); addColumn(table.id); }}
                 className="flex w-full items-center justify-center gap-1 border-t border-border py-1.5 text-[11px] text-muted-foreground hover:bg-secondary/30 transition rounded-b-xl"
@@ -565,7 +924,6 @@ const VibeDBPage = () => {
           ))}
         </div>
 
-        {/* Empty state */}
         {canvasItems.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
@@ -637,6 +995,248 @@ const VibeDBPage = () => {
               <pre className="max-h-[60vh] overflow-auto rounded-xl bg-background p-4 font-mono text-xs leading-relaxed">
                 {generatedSql}
               </pre>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Import Modal */}
+      <AnimatePresence>
+        {showImportModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm"
+            onClick={() => setShowImportModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="mx-4 w-full max-w-2xl rounded-2xl bg-card p-6 shadow-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Upload size={18} /> Import SQL
+                </h2>
+                <button onClick={() => setShowImportModal(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary"><X size={16} /></button>
+              </div>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Paste your SQL CREATE TABLE statements below to import tables into the canvas.
+              </p>
+              <textarea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                placeholder={`CREATE TABLE users (\n  id UUID PRIMARY KEY,\n  name VARCHAR NOT NULL,\n  email VARCHAR UNIQUE\n);`}
+                className="w-full rounded-xl border border-border bg-background p-4 font-mono text-xs leading-relaxed outline-none focus:border-primary resize-none"
+                rows={12}
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => setShowImportModal(false)} className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/80">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImport}
+                  disabled={!importText.trim()}
+                  className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+                >
+                  <Upload size={14} /> Import
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Batch Edit Modal */}
+      <AnimatePresence>
+        {showBatchModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm"
+            onClick={() => setShowBatchModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="mx-4 w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Edit3 size={18} /> Batch Edit
+                </h2>
+                <button onClick={() => setShowBatchModal(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary"><X size={16} /></button>
+              </div>
+              <p className="mb-3 text-sm text-muted-foreground">
+                Describe changes to apply across your schema. AI will modify all tables accordingly.
+              </p>
+              <textarea
+                value={batchPrompt}
+                onChange={e => setBatchPrompt(e.target.value)}
+                placeholder='e.g. "Add soft delete (deleted_at timestamp) to all tables" or "Add an audit_logs table that references users"'
+                className="w-full rounded-xl border border-border bg-background p-4 text-sm outline-none focus:border-primary resize-none"
+                rows={4}
+              />
+              {batchError && (
+                <div className="mt-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2 text-xs text-destructive">
+                  {batchError}
+                </div>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button onClick={() => setShowBatchModal(false)} className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/80">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBatchCommand}
+                  disabled={isBatchProcessing || !batchPrompt.trim()}
+                  className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+                >
+                  {isBatchProcessing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  {isBatchProcessing ? "Processing..." : "Execute"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Audit Modal */}
+      <AnimatePresence>
+        {showAuditModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm"
+            onClick={() => setShowAuditModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              className="mx-4 w-full max-w-2xl max-h-[80vh] overflow-auto rounded-2xl bg-card p-6 shadow-xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <ShieldCheck size={18} /> Schema Audit
+                </h2>
+                <button onClick={() => setShowAuditModal(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary"><X size={16} /></button>
+              </div>
+
+              {isAuditing ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 size={32} className="animate-spin text-accent" />
+                  <span className="ml-3 text-sm text-muted-foreground">Auditing schema...</span>
+                </div>
+              ) : auditReport ? (
+                <div className="space-y-4">
+                  {/* Score */}
+                  {(auditReport.score || auditReport.confidence_score) && (
+                    <div className="flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3">
+                      <div className="text-3xl font-bold text-accent">{auditReport.score || auditReport.confidence_score}</div>
+                      <div className="text-sm text-muted-foreground">/ 100 confidence score</div>
+                    </div>
+                  )}
+
+                  {/* Lint Issues */}
+                  {auditReport.lintIssues && auditReport.lintIssues.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">Naming Issues</h3>
+                      <div className="space-y-1">
+                        {auditReport.lintIssues.map((issue, i) => (
+                          <div key={i} className="flex items-start gap-2 rounded-lg bg-primary/5 px-3 py-2 text-xs">
+                            <span className="text-primary font-bold mt-0.5">⚠</span>
+                            <span>{issue.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FK Issues */}
+                  {auditReport.fkIssues && auditReport.fkIssues.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">Foreign Key Issues</h3>
+                      <div className="space-y-1">
+                        {auditReport.fkIssues.map((issue, i) => (
+                          <div key={i} className="flex items-start gap-2 rounded-lg bg-destructive/5 px-3 py-2 text-xs">
+                            <span className="text-destructive font-bold mt-0.5">✕</span>
+                            <span>{issue.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Issues */}
+                  {auditReport.issues && auditReport.issues.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">AI Findings</h3>
+                      <div className="space-y-1">
+                        {auditReport.issues.map((issue, i) => (
+                          <div key={i} className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${
+                            issue.severity === "error" ? "bg-destructive/5" : issue.severity === "warning" ? "bg-primary/5" : "bg-secondary"
+                          }`}>
+                            <span className={`font-bold mt-0.5 ${issue.severity === "error" ? "text-destructive" : issue.severity === "warning" ? "text-primary" : "text-accent"}`}>
+                              {issue.severity === "error" ? "✕" : issue.severity === "warning" ? "⚠" : "ℹ"}
+                            </span>
+                            <span>{issue.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths */}
+                  {auditReport.strengths && auditReport.strengths.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">Strengths</h3>
+                      <div className="space-y-1">
+                        {auditReport.strengths.map((s, i) => (
+                          <div key={i} className="flex items-start gap-2 rounded-lg bg-accent/5 px-3 py-2 text-xs">
+                            <span className="text-accent font-bold mt-0.5">✓</span>
+                            <span>{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Risks */}
+                  {auditReport.risks && auditReport.risks.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">Risks</h3>
+                      <div className="space-y-1">
+                        {auditReport.risks.map((r, i) => (
+                          <div key={i} className="flex items-start gap-2 rounded-lg bg-destructive/5 px-3 py-2 text-xs">
+                            <span className="text-destructive font-bold mt-0.5">⚡</span>
+                            <span>{r}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggestions */}
+                  {auditReport.suggestions && auditReport.suggestions.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold mb-2 text-muted-foreground">Suggestions</h3>
+                      <div className="space-y-2">
+                        {auditReport.suggestions.map((s, i) => (
+                          <div key={i} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                            <div className="text-xs flex-1">
+                              <span className="font-semibold text-accent">[{s.type}]</span>{" "}
+                              {s.description || s.reason}
+                              {s.target_table && <span className="text-muted-foreground"> → {s.target_table}</span>}
+                            </div>
+                            <button
+                              onClick={() => handleApplySuggestion(s)}
+                              className="ml-2 flex items-center gap-1 rounded-lg bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent hover:bg-accent/20 transition shrink-0"
+                            >
+                              <Check size={10} /> Apply
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </motion.div>
           </motion.div>
         )}
