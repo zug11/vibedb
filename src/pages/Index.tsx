@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Timer, Database, PenTool, ArrowRight, Sparkles, ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
+import { Timer, Database, PenTool, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
+import avatarImg from "@/assets/avatar.png";
 
 import artOrganicArchitecture from "@/assets/art/Organic_Architecture.jpeg";
 import artGeometricAscension from "@/assets/art/Geometric_Ascension.JPG";
@@ -67,42 +67,28 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="relative overflow-hidden px-6 pt-20 pb-32">
-        <div className="absolute inset-0 opacity-10">
-          <img src={heroBg} alt="" className="h-full w-full object-cover" />
-        </div>
-        <div className="absolute inset-0 bg-background/80" />
-
-        <div className="relative mx-auto max-w-4xl text-center">
+      <section className="px-6 pt-12 pb-16">
+        <div className="mx-auto max-w-4xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="flex items-start gap-5"
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Portfolio & Projects
+            <img
+              src={avatarImg}
+              alt="Zac Klugman"
+              className="h-16 w-16 rounded-full object-cover shrink-0"
+            />
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight md:text-4xl mb-3">
+                Designing, building, and exploring ideas
+              </h1>
+              <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
+                I'm a UX-focused designer and builder. I create interactive web applications with intuitive design, smooth animations, and AI integrations. I also work in filmmaking, visual art, and writing.
+              </p>
             </div>
           </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-7xl"
-          >
-            Building tools that{" "}
-            <span className="gradient-text">feel alive</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mx-auto mb-12 max-w-2xl text-lg text-muted-foreground md:text-xl"
-          >
-            Interactive web applications with thoughtful design, smooth animations, and AI integrations.
-          </motion.p>
         </div>
       </section>
 
