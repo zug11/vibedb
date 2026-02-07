@@ -823,10 +823,11 @@ const VibeDBPage = () => {
     ids.add(hoveredTableId);
     canvasItems.forEach(table => {
       table.columns.forEach(col => {
-        if (col.isForeignKey && col.linkedTableId) {
-          if (table.id === hoveredTableId) ids.add(col.linkedTableId);
-          if (col.linkedTableId === hoveredTableId) ids.add(table.id);
-        }
+        if (!col.isForeignKey) return;
+        const targetId = col.linkedTableId || canvasItems.find(t => t.name?.toLowerCase() === col.linkedTable?.toLowerCase())?.id;
+        if (!targetId) return;
+        if (table.id === hoveredTableId) ids.add(targetId);
+        if (targetId === hoveredTableId) ids.add(table.id);
       });
     });
     return ids;
