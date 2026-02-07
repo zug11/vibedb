@@ -412,9 +412,9 @@ Formatting rules (strict): Do not use Markdown syntax. Output plain text or HTML
   );
 
   return (
-    <div className="relative min-h-screen bg-white flex flex-col">
-      {/* Top toolbar */}
-      <div ref={topBarRef}>
+    <div className="relative h-screen bg-white flex flex-col overflow-hidden">
+      {/* Top toolbar - sticky */}
+      <div ref={topBarRef} className="sticky top-0 z-40 shrink-0">
         <WriterToolbar
           docTitle={docs.docTitle}
           statusMessage={docs.statusMessage}
@@ -430,40 +430,42 @@ Formatting rules (strict): Do not use Markdown syntax. Output plain text or HTML
         />
       </div>
 
-      {/* Editor area */}
-      <div id="print-area" className="w-full max-w-4xl h-full overflow-y-auto px-12 pt-32 pb-80 scroll-smooth mx-auto">
-        <div
-          ref={editorRef}
-          contentEditable
-          suppressContentEditableWarning
-          spellCheck={false}
-          dangerouslySetInnerHTML={{ __html: docs.docContent }}
-          onInput={() => {
-            docs.handleContentChange(editorRef);
-            updateCursorRef();
-          }}
-          onMouseUp={handleEditorMouseUp}
-          onKeyUp={() => {
-            updateCursorRef();
-          }}
-          onFocus={handleEditorFocus}
-          onBlur={() => setIsEditorFocused(false)}
-          className="editor-content min-h-[80vh] outline-none text-lg leading-loose text-slate-700 font-[Inter] max-w-2xl mx-auto
-            selection:bg-blue-100 selection:text-slate-900
-            empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300
-            [&>h1]:text-4xl [&>h1]:font-sans [&>h1]:font-bold [&>h1]:text-slate-900 [&>h1]:mb-6 [&>h1]:tracking-tight
-            [&>h2]:text-2xl [&>h2]:font-sans [&>h2]:font-bold [&>h2]:text-slate-800 [&>h2]:mt-8 [&>h2]:mb-4
-            [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
-            [&>blockquote]:border-l-4 [&>blockquote]:border-slate-200 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-slate-500"
-          data-placeholder="Start writing..."
-        />
+      {/* Editor area - scrollable */}
+      <div id="print-area" className="flex-1 overflow-y-auto px-12 pb-80 scroll-smooth">
+        <div className="w-full max-w-4xl mx-auto pt-12">
+          <div
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            spellCheck={false}
+            dangerouslySetInnerHTML={{ __html: docs.docContent }}
+            onInput={() => {
+              docs.handleContentChange(editorRef);
+              updateCursorRef();
+            }}
+            onMouseUp={handleEditorMouseUp}
+            onKeyUp={() => {
+              updateCursorRef();
+            }}
+            onFocus={handleEditorFocus}
+            onBlur={() => setIsEditorFocused(false)}
+            className="editor-content min-h-[80vh] outline-none text-lg leading-loose text-slate-700 font-[Inter] max-w-2xl mx-auto
+              selection:bg-blue-100 selection:text-slate-900
+              empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300
+              [&>h1]:text-4xl [&>h1]:font-sans [&>h1]:font-bold [&>h1]:text-slate-900 [&>h1]:mb-6 [&>h1]:tracking-tight
+              [&>h2]:text-2xl [&>h2]:font-sans [&>h2]:font-bold [&>h2]:text-slate-800 [&>h2]:mt-8 [&>h2]:mb-4
+              [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
+              [&>blockquote]:border-l-4 [&>blockquote]:border-slate-200 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-slate-500"
+            data-placeholder="Start writing..."
+          />
+        </div>
       </div>
 
-      {/* HUD Layer */}
+      {/* HUD Layer - fixed to bottom */}
       <div
         ref={hudRef}
         onMouseDown={() => setIsEditorFocused(false)}
-        className={`absolute bottom-6 w-full max-w-3xl flex flex-col items-center z-50 transition-all duration-500 left-1/2 -translate-x-1/2 ${
+        className={`fixed bottom-6 w-full max-w-3xl flex flex-col items-center z-50 transition-all duration-500 left-1/2 -translate-x-1/2 ${
           isEditorFocused ? "opacity-40 hover:opacity-100" : "opacity-100"
         }`}
       >
