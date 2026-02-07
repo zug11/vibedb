@@ -538,7 +538,7 @@ const VibeDBPage = () => {
       const result = JSON.parse(resultStr);
       if (result?.tables) {
         setCanvasItems(prev => {
-          return result.tables.map((newT: any) => {
+          const newTables = result.tables.map((newT: any) => {
             const existing = prev.find(p => p.id === newT.id) || prev.find(p => p.name === newT.name);
             const x = existing ? existing.x : 50 + Math.random() * 200;
             const y = existing ? existing.y : 50 + Math.random() * 200;
@@ -548,6 +548,19 @@ const VibeDBPage = () => {
             });
             return { ...newT, id: existing?.id || newT.id || uuidv4(), x, y, columns };
           });
+          // Resolve linkedTableId from linkedTable names
+          const tableMap = new Map<string, string>();
+          newTables.forEach((t: any) => { tableMap.set(t.name.toLowerCase(), t.id); });
+          return newTables.map((t: any) => ({
+            ...t,
+            columns: t.columns.map((col: any) => {
+              if (col.isForeignKey && col.linkedTable && !col.linkedTableId) {
+                const targetId = tableMap.get(col.linkedTable.toLowerCase());
+                return { ...col, linkedTableId: targetId, fkStatus: targetId ? "resolved" : "unresolved" };
+              }
+              return col;
+            }),
+          }));
         });
         addToast("Batch command executed", "success");
         setShowBatchModal(false); setBatchPrompt("");
@@ -754,8 +767,8 @@ const VibeDBPage = () => {
   const connectionPaths = useMemo(() => {
     return canvasItems.flatMap((sourceTable) =>
       sourceTable.columns.map((col, idx) => {
-        if (!col.isForeignKey || !col.linkedTableId) return null;
-        const targetTable = canvasItems.find(t => t.id === col.linkedTableId || t.name === col.linkedTable);
+        if (!col.isForeignKey || (!col.linkedTableId && !col.linkedTable)) return null;
+        const targetTable = canvasItems.find(t => t.id === col.linkedTableId || t.name === col.linkedTable || t.name?.toLowerCase() === col.linkedTable?.toLowerCase());
         if (!targetTable) return null;
 
         const isRelated = hoveredTableId && (sourceTable.id === hoveredTableId || targetTable.id === hoveredTableId);
