@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Heading1, Heading2, List, Type, ChevronDown, Undo, Redo, Layers,
-  FolderOpen, Save, Download, Check, FileText,
+  FolderOpen, Save, Download, Check, FileText, Home,
 } from "lucide-react";
 
 interface FontOption {
@@ -45,6 +46,15 @@ export const WriterToolbar: React.FC<WriterToolbarProps> = ({
 
   return (
     <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-2 flex items-center gap-2 flex-wrap">
+      {/* Home button */}
+      <Link
+        to="/"
+        className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
+        title="Back to Portfolio"
+      >
+        <Home size={20} />
+      </Link>
+
       {/* Folder icon */}
       <button
         onClick={onOpenDocList}
