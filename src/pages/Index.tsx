@@ -7,9 +7,7 @@ import avatarImg from "@/assets/avatar.png";
 import artOrganicArchitecture from "@/assets/art/Organic_Architecture.jpeg";
 import artGeometricAscension from "@/assets/art/Geometric_Ascension.JPG";
 import artStoneLikeOrganic from "@/assets/art/Stone_Like_Organic.png";
-import artGeometricCreatureChains from "@/assets/art/Geometric_Creature_Chains.png";
 import artSurrealistCreatures from "@/assets/art/Surrealist_Creatures.png";
-import artGeometricCreatureChains2 from "@/assets/art/Geometric_Creature_Chains_2.png";
 import artCrystallineSymmetry from "@/assets/art/Crystalline_Symmetry.jpg";
 import artSurrealistTrio from "@/assets/art/Surrealist_Trio.png";
 import artLeafHeadFigure from "@/assets/art/Leaf_Head_Figure.png";
@@ -18,6 +16,9 @@ import artGeometricTapestry from "@/assets/art/Geometric_Tapestry.jpg";
 import artCheckeredSurreal from "@/assets/art/Checkered_Surreal.png";
 import artSignalCreature from "@/assets/art/Signal_Creature.png";
 import artInterconnectedDreamscape from "@/assets/art/Interconnected_Dreamscape.jpg";
+import artOrganicArchitecture2 from "@/assets/art/Organic_Architecture_2.jpeg";
+import artWeatheredBronze from "@/assets/art/Weathered_Bronze_Sculpture.png";
+import artIridescentMetal from "@/assets/art/Iridescent_Metal_Flow.png";
 import articlePreview from "@/assets/article-preview.png";
 
 const products = [
@@ -51,17 +52,18 @@ const artworks = [
   { src: artOrganicArchitecture, title: "Organic Architecture" },
   { src: artGeometricAscension, title: "Geometric Ascension" },
   { src: artStoneLikeOrganic, title: "Stone Like Organic" },
-  { src: artGeometricCreatureChains, title: "Geometric Creature Chains" },
+  { src: artOrganicArchitecture2, title: "Organic Architecture II" },
+  { src: artWeatheredBronze, title: "Weathered Bronze Sculpture" },
+  { src: artIridescentMetal, title: "Iridescent Metal Flow" },
   { src: artSurrealistCreatures, title: "Surrealist Creatures" },
-  { src: artGeometricCreatureChains2, title: "Geometric Creature Chains II" },
   { src: artCrystallineSymmetry, title: "Crystalline Symmetry" },
   { src: artSurrealistTrio, title: "Surrealist Trio" },
-  { src: artLeafHeadFigure, title: "Leaf Head Figure" },
-  { src: artWatercolorDancer, title: "Watercolor Dancer" },
-  { src: artGeometricTapestry, title: "Geometric Tapestry" },
   { src: artCheckeredSurreal, title: "Checkered Surreal" },
   { src: artSignalCreature, title: "Signal Creature" },
   { src: artInterconnectedDreamscape, title: "Interconnected Dreamscape" },
+  { src: artGeometricTapestry, title: "Geometric Tapestry" },
+  { src: artWatercolorDancer, title: "Watercolor Dancer" },
+  { src: artLeafHeadFigure, title: "Leaf Head Figure" },
 ];
 
 const films = [
