@@ -73,20 +73,24 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex items-start gap-5"
           >
-            <img
-              src={avatarImg}
-              alt="Zac Klugman"
-              className="h-16 w-16 rounded-full object-cover shrink-0"
-            />
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl mb-3">
-                Designing, building, and exploring ideas
-              </h1>
-              <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
-                I'm a UX-focused designer and builder. I create interactive web applications with intuitive design, smooth animations, and AI integrations. I also work in filmmaking, visual art, and writing.
-              </p>
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground mb-8">
+              Zac Klugman's Portfolio
+            </h2>
+            <div className="flex items-start gap-6">
+              <img
+                src={avatarImg}
+                alt="Zac Klugman"
+                className="h-24 w-24 rounded-full object-cover shrink-0"
+              />
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight md:text-4xl mb-3">
+                  Designing, building, and exploring ideas
+                </h1>
+                <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
+                  I'm a UX-focused designer and builder. I create interactive web applications with intuitive design, smooth animations, and AI integrations. I also work in filmmaking, visual art, and writing.
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>
