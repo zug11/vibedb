@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Timer, Database, PenTool, ArrowRight, Sparkles, ArrowLeft, X, Play } from "lucide-react";
+import { Timer, Database, PenTool, ArrowRight, Sparkles, ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 
 import artOrganicArchitecture from "@/assets/art/Organic_Architecture.jpeg";
@@ -155,78 +155,78 @@ const Index = () => {
 
       {/* Featured Art */}
       <section className="relative px-6 pb-24">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="mb-12"
+            className="mb-8"
           >
             <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
               Featured Art
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {artworks.map((art, i) => (
-              <motion.div
-                key={art.title}
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className={`cursor-pointer group overflow-hidden rounded-2xl border border-border bg-card ${i === 0 ? "md:col-span-2 md:row-span-2" : ""}`}
-                onClick={() => setSelectedArt(i)}
+          {/* Main viewport */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative overflow-hidden rounded-2xl border border-border bg-card mb-3"
+          >
+            <div className="relative aspect-[4/3] overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selectedArt ?? 0}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  src={artworks[selectedArt ?? 0].src}
+                  alt={artworks[selectedArt ?? 0].title}
+                  className="h-full w-full object-cover"
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+              <p className="absolute bottom-4 left-4 text-white text-sm font-semibold">
+                {artworks[selectedArt ?? 0].title}
+              </p>
+              {/* Nav arrows */}
+              <button
+                onClick={() => setSelectedArt((prev) => ((prev ?? 0) - 1 + artworks.length) % artworks.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white/80 hover:text-white hover:bg-black/60 transition"
               >
-                <div className="relative overflow-hidden aspect-square">
-                  <img
-                    src={art.src}
-                    alt={art.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                    <p className="text-white text-sm font-semibold">{art.title}</p>
-                  </div>
-                </div>
-              </motion.div>
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setSelectedArt((prev) => ((prev ?? 0) + 1) % artworks.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white/80 hover:text-white hover:bg-black/60 transition"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Thumbnails */}
+          <div className="flex gap-2">
+            {artworks.map((art, i) => (
+              <button
+                key={art.title}
+                onClick={() => setSelectedArt(i)}
+                className={`flex-1 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                  (selectedArt ?? 0) === i
+                    ? "border-primary ring-1 ring-primary/30"
+                    : "border-transparent opacity-60 hover:opacity-100"
+                }`}
+              >
+                <img src={art.src} alt={art.title} className="aspect-square w-full object-cover" />
+              </button>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Art Lightbox */}
-      <AnimatePresence>
-        {selectedArt !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-8"
-            onClick={() => setSelectedArt(null)}
-          >
-            <button
-              onClick={() => setSelectedArt(null)}
-              className="absolute top-6 right-6 text-white/70 hover:text-white transition p-2"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            <motion.img
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              src={artworks[selectedArt].src}
-              alt={artworks[selectedArt].title}
-              className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <p className="absolute bottom-8 text-white/80 text-sm font-medium">
-              {artworks[selectedArt].title}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Film */}
       <section className="relative px-6 pb-24">
