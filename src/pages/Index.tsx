@@ -9,6 +9,15 @@ import artGeometricAscension from "@/assets/art/Geometric_Ascension.JPG";
 import artStoneLikeOrganic from "@/assets/art/Stone_Like_Organic.png";
 import artGeometricCreatureChains from "@/assets/art/Geometric_Creature_Chains.png";
 import artSurrealistCreatures from "@/assets/art/Surrealist_Creatures.png";
+import artGeometricCreatureChains2 from "@/assets/art/Geometric_Creature_Chains_2.png";
+import artCrystallineSymmetry from "@/assets/art/Crystalline_Symmetry.jpg";
+import artSurrealistTrio from "@/assets/art/Surrealist_Trio.png";
+import artLeafHeadFigure from "@/assets/art/Leaf_Head_Figure.png";
+import artWatercolorDancer from "@/assets/art/Watercolor_Dancer.jpg";
+import artGeometricTapestry from "@/assets/art/Geometric_Tapestry.jpg";
+import artCheckeredSurreal from "@/assets/art/Checkered_Surreal.png";
+import artSignalCreature from "@/assets/art/Signal_Creature.png";
+import artInterconnectedDreamscape from "@/assets/art/Interconnected_Dreamscape.jpg";
 import articlePreview from "@/assets/article-preview.png";
 
 const products = [
@@ -44,6 +53,15 @@ const artworks = [
   { src: artStoneLikeOrganic, title: "Stone Like Organic" },
   { src: artGeometricCreatureChains, title: "Geometric Creature Chains" },
   { src: artSurrealistCreatures, title: "Surrealist Creatures" },
+  { src: artGeometricCreatureChains2, title: "Geometric Creature Chains II" },
+  { src: artCrystallineSymmetry, title: "Crystalline Symmetry" },
+  { src: artSurrealistTrio, title: "Surrealist Trio" },
+  { src: artLeafHeadFigure, title: "Leaf Head Figure" },
+  { src: artWatercolorDancer, title: "Watercolor Dancer" },
+  { src: artGeometricTapestry, title: "Geometric Tapestry" },
+  { src: artCheckeredSurreal, title: "Checkered Surreal" },
+  { src: artSignalCreature, title: "Signal Creature" },
+  { src: artInterconnectedDreamscape, title: "Interconnected Dreamscape" },
 ];
 
 const films = [
@@ -200,18 +218,19 @@ const Index = () => {
           </motion.div>
 
           {/* Thumbnails */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
             {artworks.map((art, i) => (
               <button
                 key={art.title}
                 onClick={() => setSelectedArt(i)}
-                className={`flex-1 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
+                className={`shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-200 ${
                   (selectedArt ?? 0) === i
                     ? "border-primary ring-1 ring-primary/30"
                     : "border-transparent opacity-60 hover:opacity-100"
                 }`}
+                style={{ width: 64, height: 64 }}
               >
-                <img src={art.src} alt={art.title} className="aspect-square w-full object-cover" />
+                <img src={art.src} alt={art.title} className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
