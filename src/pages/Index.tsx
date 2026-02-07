@@ -81,7 +81,7 @@ const Index = () => {
               <img
                 src={avatarImg}
                 alt="Zac Klugman"
-                className="h-24 w-24 rounded-full object-cover shrink-0"
+                className="h-32 w-32 rounded-full object-cover shrink-0"
               />
               <div>
                 <h1 className="text-3xl font-bold tracking-tight md:text-4xl mb-3">
