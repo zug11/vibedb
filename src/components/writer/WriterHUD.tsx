@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   Sparkles, ChevronDown, ChevronUp, MessageSquare, Wrench, Send, X,
   CornerDownRight, Maximize2, Minimize2, Sliders, Loader2, Trash2,
@@ -154,24 +155,89 @@ export const WriterHUD: React.FC<WriterHUDProps> = ({
         </div>
       )}
 
+      {/* Expanded card portal - rendered outside transform chain */}
+      {expandedCardId !== null && (() => {
+        const thread = threads.find(t => t.id === expandedCardId);
+        if (!thread) return null;
+        const isNote = thread.type === "NOTE";
+        return createPortal(
+          <div className="fixed inset-0 z-[9999]" onClick={() => setExpandedCardId(null)}>
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[90vw] max-w-2xl h-[60vh] bg-white border border-white/40 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.4)] rounded-2xl flex flex-col"
+            >
+              {/* Card header */}
+              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  {thread.icon}
+                  <span>{thread.type}</span>
+                </div>
+                <button
+                  onClick={() => setExpandedCardId(null)}
+                  className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-slate-100 rounded-md"
+                >
+                  <Minimize2 size={14} />
+                </button>
+              </div>
+              {/* Card body */}
+              {isNote ? (
+                <div className="flex-1 p-4">
+                  <textarea
+                    defaultValue={thread.messages[0]?.text || ""}
+                    onChange={(e) => handleNoteEdit(thread.id, e.target.value)}
+                    className="w-full h-full bg-transparent resize-none outline-none text-sm text-slate-700 leading-relaxed placeholder:text-slate-400"
+                    placeholder="Type your note here..."
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {thread.messages.map((msg, i) => (
+                    <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                      <div className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                        msg.role === "user" ? "bg-blue-50 text-slate-700" : "bg-slate-50 text-slate-600"
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Reply input */}
+              {!isNote && (
+                <div className="px-4 py-2 border-t border-slate-100 flex items-center gap-2">
+                  <CornerDownRight size={14} className="text-slate-400" />
+                  <input
+                    className="flex-1 bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400"
+                    placeholder="Reply..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        onThreadReply(thread.id, e.currentTarget.value);
+                        e.currentTarget.value = "";
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        );
+      })()}
+
       {/* Carousel */}
       <div
         className={`pointer-events-auto w-full px-2 transition-all duration-400 ease-[cubic-bezier(0.23,1,0.32,1)] origin-bottom mb-4 ${
           isCarouselOpen ? "opacity-100 translate-y-0 h-auto" : "opacity-0 -translate-y-2 h-0 overflow-hidden"
         }`}
       >
-        {/* Expanded backdrop */}
-        {expandedCardId !== null && (
-          <div className="fixed inset-0 bg-black/10 z-[90]" onClick={() => setExpandedCardId(null)} />
-        )}
-
         <div
           ref={carouselRef}
           className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide mask-fade-edges"
           style={{ scrollbarWidth: "none" }}
         >
           {threads.map((thread, index) => {
-            const isExpanded = expandedCardId === thread.id;
+            if (expandedCardId === thread.id) return null;
             const isNote = thread.type === "NOTE";
             return (
               <div
@@ -181,9 +247,13 @@ export const WriterHUD: React.FC<WriterHUDProps> = ({
                 onDragEnter={(e) => handleDragEnter(e, index)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e) => e.preventDefault()}
-                onClick={() => !isExpanded && setActiveCardIndex(index)}
-                className={`${getCardClasses(thread.id, index)} cursor-grab active:cursor-grabbing`}
-                style={{ height: isExpanded ? "60vh" : isNote ? "300px" : "auto", maxHeight: isExpanded ? "60vh" : "300px" }}
+                onClick={() => setActiveCardIndex(index)}
+                className={`bg-white backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                  isEditorFocused ? "opacity-40 hover:opacity-100 bg-white/60" : "opacity-100"
+                } snap-center shrink-0 w-[85%] sm:w-[320px] relative ${
+                  activeCardIndex === index ? "ring-2 ring-blue-500/20 scale-[1.02]" : "scale-95"
+                } cursor-grab active:cursor-grabbing`}
+                style={{ height: isNote ? "300px" : "auto", maxHeight: "300px" }}
               >
                 {/* Card header */}
                 <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
@@ -194,19 +264,17 @@ export const WriterHUD: React.FC<WriterHUDProps> = ({
                   </div>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setExpandedCardId(isExpanded ? null : thread.id); }}
+                      onClick={(e) => { e.stopPropagation(); setExpandedCardId(thread.id); }}
                       className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-slate-100 rounded-md"
                     >
-                      {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={12} />}
+                      <Maximize2 size={12} />
                     </button>
-                    {!isExpanded && (
-                      <button
-                        onClick={(e) => handleDeleteThread(thread.id, e)}
-                        className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-md transition"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => handleDeleteThread(thread.id, e)}
+                      className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-md transition"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 </div>
 
@@ -224,13 +292,9 @@ export const WriterHUD: React.FC<WriterHUDProps> = ({
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar cursor-text" onMouseDown={(e) => e.stopPropagation()}>
                     {thread.messages.map((msg, i) => (
                       <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                        <div
-                          className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                            msg.role === "user"
-                              ? "bg-blue-50 text-slate-700"
-                              : "bg-slate-50 text-slate-600"
-                          }`}
-                        >
+                        <div className={`max-w-[90%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                          msg.role === "user" ? "bg-blue-50 text-slate-700" : "bg-slate-50 text-slate-600"
+                        }`}>
                           {msg.text}
                         </div>
                       </div>
