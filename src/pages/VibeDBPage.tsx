@@ -761,12 +761,12 @@ const VibeDBPage = () => {
         const isRelated = hoveredTableId && (sourceTable.id === hoveredTableId || targetTable.id === hoveredTableId);
         const isSelected = connectionMode?.sourceTableId === sourceTable.id && connectionMode?.sourceColumnId === col.id;
         let stroke = col.fkStatus === "resolved" ? "hsl(var(--accent))" : "hsl(var(--destructive))";
-        let opacity = 0.7;
+        let opacity = 0.9;
         let width = 2.5;
         if (hoveredTableId) {
-          if (isRelated) { opacity = 1; width = 3; } else { opacity = 0.15; }
+          if (isRelated) { opacity = 1; width = 3.5; } else { opacity = 0.15; }
         }
-        if (isSelected) { stroke = "hsl(45, 93%, 47%)"; opacity = 1; width = 3; }
+        if (isSelected) { stroke = "hsl(45, 93%, 47%)"; opacity = 1; width = 3.5; }
 
         const sourceRowY = sourceTable.y + HEADER_HEIGHT + (idx * ROW_HEIGHT) + (ROW_HEIGHT / 2);
         let targetRowIndex = targetTable.columns.findIndex(c => c.name === col.linkedColumn);
@@ -775,7 +775,8 @@ const VibeDBPage = () => {
 
         const sourceCenter = sourceTable.x + TABLE_WIDTH / 2;
         const targetCenter = targetTable.x + TABLE_WIDTH / 2;
-        const curvature = 80;
+        const dx = Math.abs(targetCenter - sourceCenter);
+        const curvature = Math.max(80, dx * 0.4);
         let startX: number, endX: number, cp1X: number, cp2X: number;
         if (targetCenter > sourceCenter) {
           startX = sourceTable.x + TABLE_WIDTH; endX = targetTable.x;
@@ -788,9 +789,15 @@ const VibeDBPage = () => {
 
         return (
           <g key={`${sourceTable.id}-${col.name}-${idx}`}>
-            <path d={pathD} fill="none" stroke={stroke} strokeWidth={width} opacity={opacity} />
-            <circle cx={startX} cy={sourceRowY} r={width + 1} fill={stroke} fillOpacity={opacity} />
-            <circle cx={endX} cy={targetRowY} r={width + 1} fill={stroke} fillOpacity={opacity} />
+            <path d={pathD} fill="none" stroke={stroke} strokeWidth={width + 4} opacity={opacity * 0.15} strokeLinecap="round" />
+            <path d={pathD} fill="none" stroke={stroke} strokeWidth={width} opacity={opacity} strokeLinecap="round" />
+            <circle cx={startX} cy={sourceRowY} r={width + 1.5} fill={stroke} fillOpacity={opacity} />
+            <circle cx={endX} cy={targetRowY} r={width + 1.5} fill={stroke} fillOpacity={opacity} />
+            <polygon
+              points={`${endX},${targetRowY - 5} ${endX + (targetCenter > sourceCenter ? -10 : 10)},${targetRowY} ${endX},${targetRowY + 5}`}
+              fill={stroke}
+              fillOpacity={opacity}
+            />
           </g>
         );
       })
