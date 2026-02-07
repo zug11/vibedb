@@ -49,10 +49,9 @@ const products = [
 ];
 
 const artworks = [
-  { src: artOrganicArchitecture, title: "Organic Architecture" },
+  { src: artOrganicArchitecture2, title: "Organic Architecture" },
   { src: artGeometricAscension, title: "Geometric Ascension" },
   { src: artStoneLikeOrganic, title: "Stone Like Organic" },
-  { src: artOrganicArchitecture2, title: "Organic Architecture II" },
   { src: artWeatheredBronze, title: "Weathered Bronze Sculpture" },
   { src: artIridescentMetal, title: "Iridescent Metal Flow" },
   { src: artSurrealistCreatures, title: "Surrealist Creatures" },
@@ -64,6 +63,7 @@ const artworks = [
   { src: artGeometricTapestry, title: "Geometric Tapestry" },
   { src: artWatercolorDancer, title: "Watercolor Dancer" },
   { src: artLeafHeadFigure, title: "Leaf Head Figure" },
+  { src: artOrganicArchitecture, title: "Organic Biomechanics" },
 ];
 
 const films = [
