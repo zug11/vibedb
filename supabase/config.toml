@@ -1,0 +1,4 @@
+project_id = "slfkzmikchwxqewuxnwh"
+
+[functions.vibedb-ai]
+verify_jwt = false
