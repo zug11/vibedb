@@ -2,3 +2,6 @@ project_id = "slfkzmikchwxqewuxnwh"
 
 [functions.vibedb-ai]
 verify_jwt = false
+
+[functions.writer-ai]
+verify_jwt = false

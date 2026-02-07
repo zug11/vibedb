@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Timer, Database, ArrowRight, Sparkles } from "lucide-react";
+import { Timer, Database, PenTool, ArrowRight, Sparkles } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const projects = [
@@ -19,6 +19,14 @@ const projects = [
     route: "/vibedb",
     gradient: "from-emerald-500 to-cyan-500",
     tags: ["AI", "Database Design", "Schema Export"],
+  },
+  {
+    title: "Writer AI",
+    description: "AI-powered writing tool with ghostwriting, critique, idea generation, and a rich text editor with focus mode and document management.",
+    icon: PenTool,
+    route: "/writer",
+    gradient: "from-violet-500 to-indigo-500",
+    tags: ["AI", "Rich Text Editor", "Ghostwriting"],
   },
 ];
 
