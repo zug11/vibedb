@@ -1,15 +1,39 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { WriterToolbar } from "@/components/writer/WriterToolbar";
 import { WriterHUD, type CarouselThread, type Tool } from "@/components/writer/WriterHUD";
 import { DocumentList } from "@/components/writer/DocumentList";
 import { useWriterDocuments } from "@/hooks/use-writer-documents";
 import { useWriterAI } from "@/hooks/use-writer-ai";
+import { Search, Lightbulb } from "lucide-react";
+
+const INITIAL_THREADS: CarouselThread[] = [
+  {
+    id: 1,
+    type: "CRITIQUE",
+    color: "bg-rose-100 text-rose-700",
+    icon: <Search size={12} />,
+    messages: [
+      { role: "user", text: "How is the pacing in the second paragraph?" },
+      { role: "ai", text: "It drags a bit. You spend too long describing the drone's voice. Consider cutting the '1950s radio host' metaphor or moving it to dialogue tags." },
+    ],
+  },
+  {
+    id: 2,
+    type: "IDEA GEN",
+    color: "bg-amber-100 text-amber-700",
+    icon: <Lightbulb size={12} />,
+    messages: [
+      { role: "user", text: "Something obscure for the backpack" },
+      { role: "ai", text: "A corrupted save file that whispers when you hold it to your ear, or a half-eaten sandwich that regenerates one bite every hour." },
+    ],
+  },
+];
 
 const WriterPage: React.FC = () => {
   const editorRef = useRef<HTMLDivElement>(null);
   const selectionRangeRef = useRef<Range | null>(null);
+  const hudRef = useRef<HTMLDivElement>(null);
+  const topBarRef = useRef<HTMLDivElement>(null);
 
   const docs = useWriterDocuments();
   const ai = useWriterAI();
@@ -19,7 +43,8 @@ const WriterPage: React.FC = () => {
   const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
   const [fullSelectionContext, setFullSelectionContext] = useState("");
-  const [threads, setThreads] = useState<CarouselThread[]>([]);
+  const [selectedSnippet, setSelectedSnippet] = useState("");
+  const [threads, setThreads] = useState<CarouselThread[]>(INITIAL_THREADS);
   const [generateLength, setGenerateLength] = useState(50);
   const [customInstructions, setCustomInstructions] = useState("");
 
@@ -32,7 +57,57 @@ const WriterPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Global click handler to clear highlights when clicking outside
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        editorRef.current?.contains(target) ||
+        hudRef.current?.contains(target) ||
+        topBarRef.current?.contains(target)
+      ) {
+        return;
+      }
+      if (hasSelection) {
+        clearAllHighlights();
+      }
+    };
+    document.addEventListener("mousedown", handleGlobalClick);
+    return () => document.removeEventListener("mousedown", handleGlobalClick);
+  }, [hasSelection]);
+
   // Selection helpers
+  const updateSelectionState = useCallback(() => {
+    if (!editorRef.current) return;
+    const highlights = editorRef.current.querySelectorAll('span[style*="background-color"]');
+    let combinedText = "";
+    let found = false;
+
+    highlights.forEach((span) => {
+      const bg = (span as HTMLElement).style.backgroundColor;
+      if (bg.includes("224") || bg.includes("231") || bg.includes("e0e7ff") || bg.includes("199")) {
+        combinedText += span.textContent + " ";
+        found = true;
+      }
+    });
+
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) {
+      found = true;
+      if (!combinedText) combinedText = selection.toString();
+    }
+
+    if (found) {
+      setHasSelection(true);
+      setFullSelectionContext(combinedText.trim());
+      setSelectedSnippet(combinedText.length > 60 ? combinedText.slice(0, 60) + "..." : combinedText);
+    } else {
+      setHasSelection(false);
+      setFullSelectionContext("");
+      setSelectedSnippet("");
+    }
+  }, []);
+
   const updateCursorRef = useCallback(() => {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -56,6 +131,7 @@ const WriterPage: React.FC = () => {
         selection?.removeAllRanges();
         setHasSelection(false);
         setFullSelectionContext("");
+        setSelectedSnippet("");
       } catch (e) {
         console.warn("Error clearing highlights", e);
       }
@@ -66,13 +142,10 @@ const WriterPage: React.FC = () => {
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed) {
       document.execCommand("styleWithCSS", false, "true");
-      document.execCommand("hiliteColor", false, "#c7d2fe");
-      // Update selection state
-      const text = selection.toString();
-      setHasSelection(true);
-      setFullSelectionContext(text);
+      document.execCommand("hiliteColor", false, "#e0e7ff");
+      updateSelectionState();
     }
-  }, []);
+  }, [updateSelectionState]);
 
   const handleEditorMouseUp = useCallback(() => {
     const selection = window.getSelection();
@@ -80,12 +153,14 @@ const WriterPage: React.FC = () => {
     updateCursorRef();
     if (!selection.isCollapsed) {
       applyHighlight();
-    } else if (!isMultiSelectMode && hasSelection) {
-      const range = selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
-      clearAllHighlights();
-      if (range) {
-        selection.removeAllRanges();
-        selection.addRange(range);
+    } else {
+      if (!isMultiSelectMode && hasSelection) {
+        const range = selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+        clearAllHighlights();
+        if (range) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
       }
     }
   }, [updateCursorRef, applyHighlight, isMultiSelectMode, hasSelection, clearAllHighlights]);
@@ -99,21 +174,27 @@ const WriterPage: React.FC = () => {
   }, [updateCursorRef]);
 
   // Format commands
-  const execFormat = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current) {
-      editorRef.current.focus();
-      docs.handleContentChange(editorRef);
-    }
-  }, [docs]);
+  const execFormat = useCallback(
+    (command: string, value?: string) => {
+      document.execCommand(command, false, value);
+      if (editorRef.current) {
+        editorRef.current.focus();
+        docs.handleContentChange(editorRef);
+      }
+    },
+    [docs]
+  );
 
-  const applyFont = useCallback((fontValue: string) => {
-    document.execCommand("fontName", false, fontValue);
-    if (editorRef.current) {
-      editorRef.current.focus();
-      docs.handleContentChange(editorRef);
-    }
-  }, [docs]);
+  const applyFont = useCallback(
+    (fontValue: string) => {
+      document.execCommand("fontName", false, fontValue);
+      if (editorRef.current) {
+        editorRef.current.focus();
+        docs.handleContentChange(editorRef);
+      }
+    },
+    [docs]
+  );
 
   // Thread context builder
   const getThreadContext = useCallback(() => {
@@ -181,9 +262,8 @@ const WriterPage: React.FC = () => {
   // Chat submit
   const handleChatSubmit = useCallback(
     async (message: string, tool: Tool | null) => {
-      const mainContext = hasSelection && fullSelectionContext
-        ? fullSelectionContext
-        : editorRef.current?.innerText.slice(-3000) || "";
+      const mainContext =
+        hasSelection && fullSelectionContext ? fullSelectionContext : editorRef.current?.innerText.slice(-3000) || "";
       const contextLabel = hasSelection ? "HIGHLIGHTED SELECTION" : "CURRENT DRAFT CONTEXT";
       const threadContext = getThreadContext();
 
@@ -192,7 +272,7 @@ const WriterPage: React.FC = () => {
           const newThread: CarouselThread = {
             id: Date.now(),
             type: "NOTE",
-            color: "bg-secondary text-muted-foreground",
+            color: "bg-stone-100 text-stone-700 border-stone-300",
             icon: tool.icon,
             messages: [{ role: "user", text: message }],
           };
@@ -217,7 +297,7 @@ Formatting rules (strict): Do not use Markdown syntax. Do not use **bold**, __bo
         const newThread: CarouselThread = {
           id: newThreadId,
           type: tool.label.toUpperCase(),
-          color: "bg-secondary text-foreground",
+          color: tool.color.replace("text-", "bg-").replace("600", "100") + " " + tool.color.replace("600", "700"),
           icon: tool.icon,
           messages: [
             { role: "user", text: message },
@@ -238,12 +318,11 @@ Formatting rules (strict): Do not use Markdown syntax. Do not use **bold**, __bo
           })
         );
       } else {
-        // General chat
         const newThreadId = Date.now();
         const newThread: CarouselThread = {
           id: newThreadId,
           type: "GENERAL",
-          color: "bg-secondary text-foreground",
+          color: "bg-slate-100 text-slate-600",
           icon: null,
           messages: [{ role: "user", text: message }],
         };
@@ -272,12 +351,15 @@ Formatting rules (strict): Do not use Markdown syntax. Do not use **bold**, __bo
     async (threadId: number, replyText: string) => {
       if (!replyText.trim()) return;
       setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, { role: "user" as const, text: replyText }] } : t))
+        prev.map((t) =>
+          t.id === threadId ? { ...t, messages: [...t.messages, { role: "user" as const, text: replyText }] } : t
+        )
       );
 
       const thread = threads.find((t) => t.id === threadId);
       const history = thread ? thread.messages.map((m) => `${m.role}: ${m.text}`).join("\n") : "";
-      const mainContext = hasSelection && fullSelectionContext ? fullSelectionContext : editorRef.current?.innerText.slice(-2000) || "";
+      const mainContext =
+        hasSelection && fullSelectionContext ? fullSelectionContext : editorRef.current?.innerText.slice(-2000) || "";
       const contextLabel = hasSelection ? "HIGHLIGHTED SELECTION" : "DRAFT CONTEXT";
       const threadCtx = getThreadContext();
 
@@ -289,7 +371,9 @@ Formatting rules (strict): Do not use Markdown syntax. Output plain text or HTML
 
       const aiResponse = await ai.chat(replyText, systemPrompt);
       setThreads((prev) =>
-        prev.map((t) => (t.id === threadId ? { ...t, messages: [...t.messages, { role: "ai" as const, text: aiResponse }] } : t))
+        prev.map((t) =>
+          t.id === threadId ? { ...t, messages: [...t.messages, { role: "ai" as const, text: aiResponse }] } : t
+        )
       );
     },
     [threads, hasSelection, fullSelectionContext, getThreadContext, ai]
@@ -328,67 +412,76 @@ Formatting rules (strict): Do not use Markdown syntax. Output plain text or HTML
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Back nav */}
-      <div className="px-4 py-2 border-b border-border bg-card/50">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition">
-          <ArrowLeft size={16} /> Back to Portfolio
-        </Link>
+    <div className="relative min-h-screen bg-white flex flex-col">
+      {/* Top toolbar */}
+      <div ref={topBarRef}>
+        <WriterToolbar
+          docTitle={docs.docTitle}
+          statusMessage={docs.statusMessage}
+          isMultiSelectMode={isMultiSelectMode}
+          onTitleChange={docs.setDocTitle}
+          onFormat={execFormat}
+          onFontChange={applyFont}
+          onToggleMultiSelect={() => setIsMultiSelectMode(!isMultiSelectMode)}
+          onOpenDocList={() => setIsDocListOpen(true)}
+          onSave={() => docs.saveDocument(editorRef)}
+          onExport={() => docs.exportMarkdown(editorRef)}
+          onContentChange={() => docs.handleContentChange(editorRef)}
+        />
       </div>
 
-      {/* Toolbar */}
-      <WriterToolbar
-        docTitle={docs.docTitle}
-        statusMessage={docs.statusMessage}
-        isMultiSelectMode={isMultiSelectMode}
-        onTitleChange={docs.setDocTitle}
-        onFormat={execFormat}
-        onFontChange={applyFont}
-        onToggleMultiSelect={() => setIsMultiSelectMode(!isMultiSelectMode)}
-        onOpenDocList={() => setIsDocListOpen(true)}
-        onSave={() => docs.saveDocument(editorRef)}
-        onExport={() => docs.exportMarkdown(editorRef)}
-        onContentChange={() => docs.handleContentChange(editorRef)}
-      />
-
-      {/* Editor */}
-      <div className="flex-1 flex justify-center overflow-hidden" id="print-area">
+      {/* Editor area */}
+      <div id="print-area" className="w-full max-w-4xl h-full overflow-y-auto px-12 pt-32 pb-80 scroll-smooth mx-auto">
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
+          spellCheck={false}
+          dangerouslySetInnerHTML={{ __html: docs.docContent }}
           onInput={() => {
             docs.handleContentChange(editorRef);
             updateCursorRef();
           }}
           onMouseUp={handleEditorMouseUp}
-          onKeyUp={updateCursorRef}
+          onKeyUp={() => {
+            updateCursorRef();
+          }}
           onFocus={handleEditorFocus}
           onBlur={() => setIsEditorFocused(false)}
-          className="w-full max-w-3xl px-8 md:px-16 py-12 pb-48 outline-none text-foreground leading-relaxed text-lg editor-content overflow-y-auto
-            [&>h1]:text-4xl [&>h1]:font-bold [&>h1]:mb-6 [&>h1]:tracking-tight
-            [&>h2]:text-2xl [&>h2]:font-bold [&>h2]:mt-8 [&>h2]:mb-4
+          className="editor-content min-h-[80vh] outline-none text-lg leading-loose text-slate-700 font-[Inter] max-w-2xl mx-auto
+            selection:bg-blue-100 selection:text-slate-900
+            empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300
+            [&>h1]:text-4xl [&>h1]:font-sans [&>h1]:font-bold [&>h1]:text-slate-900 [&>h1]:mb-6 [&>h1]:tracking-tight
+            [&>h2]:text-2xl [&>h2]:font-sans [&>h2]:font-bold [&>h2]:text-slate-800 [&>h2]:mt-8 [&>h2]:mb-4
             [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5
-            [&>blockquote]:border-l-4 [&>blockquote]:border-border [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-muted-foreground"
+            [&>blockquote]:border-l-4 [&>blockquote]:border-slate-200 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-slate-500"
           data-placeholder="Start writing..."
         />
       </div>
 
-      {/* HUD */}
-      <WriterHUD
-        threads={threads}
-        isEditorFocused={isEditorFocused}
-        isGenerating={ai.isGenerating}
-        isChatLoading={ai.isChatLoading}
-        generateLength={generateLength}
-        customInstructions={customInstructions}
-        onSetThreads={setThreads}
-        onGenerate={handleGenerate}
-        onChatSubmit={handleChatSubmit}
-        onThreadReply={handleThreadReply}
-        onSetGenerateLength={setGenerateLength}
-        onSetCustomInstructions={setCustomInstructions}
-      />
+      {/* HUD Layer */}
+      <div
+        ref={hudRef}
+        onMouseDown={() => setIsEditorFocused(false)}
+        className={`absolute bottom-6 w-full max-w-3xl flex flex-col items-center z-50 transition-all duration-500 left-1/2 -translate-x-1/2 ${
+          isEditorFocused ? "opacity-40 hover:opacity-100" : "opacity-100"
+        }`}
+      >
+        <WriterHUD
+          threads={threads}
+          isEditorFocused={isEditorFocused}
+          isGenerating={ai.isGenerating}
+          isChatLoading={ai.isChatLoading}
+          generateLength={generateLength}
+          customInstructions={customInstructions}
+          onSetThreads={setThreads}
+          onGenerate={handleGenerate}
+          onChatSubmit={handleChatSubmit}
+          onThreadReply={handleThreadReply}
+          onSetGenerateLength={setGenerateLength}
+          onSetCustomInstructions={setCustomInstructions}
+        />
+      </div>
 
       {/* Document list overlay */}
       {isDocListOpen && (
