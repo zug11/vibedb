@@ -176,7 +176,7 @@ const Index = () => {
             transition={{ duration: 0.5 }}
             className="relative overflow-hidden rounded-2xl border border-border bg-card mb-3"
           >
-            <div className="relative aspect-[4/3] overflow-hidden">
+            <div className="relative overflow-hidden bg-black/5 flex items-center justify-center" style={{ height: "420px" }}>
               <AnimatePresence mode="wait">
                 <motion.img
                   key={selectedArt ?? 0}
@@ -186,7 +186,7 @@ const Index = () => {
                   transition={{ duration: 0.3 }}
                   src={artworks[selectedArt ?? 0].src}
                   alt={artworks[selectedArt ?? 0].title}
-                  className="h-full w-full object-cover"
+                  className="max-h-full max-w-full object-contain"
                 />
               </AnimatePresence>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
