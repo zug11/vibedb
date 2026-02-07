@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Heading1, Heading2, List, Type, ChevronDown, Undo, Redo, Layers,
-  FolderOpen, Save, Download, Check,
+  FolderOpen, Save, Download, Check, FileText,
 } from "lucide-react";
 
 interface FontOption {
@@ -43,107 +43,180 @@ export const WriterToolbar: React.FC<WriterToolbarProps> = ({
 }) => {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
 
-  const ToolbarButton: React.FC<{
-    onClick: (e: React.MouseEvent) => void;
-    title: string;
-    active?: boolean;
-    children: React.ReactNode;
-  }> = ({ onClick, title, active, children }) => (
-    <button
-      onMouseDown={(e) => { e.preventDefault(); onClick(e); }}
-      className={`p-2 rounded-full transition ${
-        active
-          ? "bg-primary/10 text-primary"
-          : "hover:bg-secondary text-muted-foreground hover:text-foreground"
-      }`}
-      title={title}
-    >
-      {children}
-    </button>
-  );
-
   return (
-    <div className="border-b border-border bg-card/80 backdrop-blur-sm px-4 py-2 flex items-center gap-2 flex-wrap">
-      {/* Left section */}
-      <button onClick={onOpenDocList} className="p-2 hover:bg-secondary rounded-lg transition text-muted-foreground hover:text-foreground">
+    <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-2 flex items-center gap-2 flex-wrap">
+      {/* Folder icon */}
+      <button
+        onClick={onOpenDocList}
+        className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
+      >
         <FolderOpen size={20} />
       </button>
 
+      {/* Title input */}
       <input
         value={docTitle}
         onChange={(e) => { onTitleChange(e.target.value); onContentChange(); }}
-        className="text-lg font-bold bg-transparent border-none outline-none text-foreground w-48 md:w-64 focus:ring-0 p-0"
+        className="text-lg font-bold bg-transparent border-none outline-none text-slate-900 w-64 focus:ring-0 p-0"
       />
 
-      <span className="text-xs text-muted-foreground flex items-center gap-1">
+      {/* Status */}
+      <span className="text-xs text-slate-400 flex items-center gap-1">
         {statusMessage === "Saved" && <Check size={10} />} {statusMessage}
       </span>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Undo/Redo */}
-      <ToolbarButton onClick={() => onFormat("undo")} title="Undo (Ctrl+Z)"><Undo size={14} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("redo")} title="Redo (Ctrl+Y)"><Redo size={14} /></ToolbarButton>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("undo"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Undo (Cmd+Z)"
+      >
+        <Undo size={14} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("redo"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Redo (Cmd+Y)"
+      >
+        <Redo size={14} />
+      </button>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Font selector */}
       <div className="relative">
-        <ToolbarButton onClick={() => setIsFontMenuOpen(!isFontMenuOpen)} title="Select Font">
-          <span className="flex items-center gap-1"><Type size={16} /><ChevronDown size={12} className="opacity-50" /></span>
-        </ToolbarButton>
+        <button
+          onMouseDown={(e) => { e.preventDefault(); setIsFontMenuOpen(!isFontMenuOpen); }}
+          className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition flex items-center gap-1"
+          title="Select Font"
+        >
+          <Type size={16} />
+          <ChevronDown size={12} className="opacity-50" />
+        </button>
         {isFontMenuOpen && (
-          <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border shadow-lg rounded-xl overflow-hidden py-1 z-50">
+          <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 shadow-lg rounded-xl overflow-hidden py-1 z-50">
             {FONT_OPTIONS.map((font) => (
               <button
                 key={font.name}
                 onMouseDown={(e) => { e.preventDefault(); onFontChange(font.value); setIsFontMenuOpen(false); }}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-secondary text-foreground flex justify-between items-center"
+                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 text-slate-700 flex justify-between items-center"
                 style={{ fontFamily: font.value }}
               >
                 {font.name}
-                <span className="text-xs text-muted-foreground">{font.category}</span>
+                <span className="text-xs text-slate-400">{font.category}</span>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Formatting */}
-      <ToolbarButton onClick={() => onFormat("bold")} title="Bold (Ctrl+B)"><Bold size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("italic")} title="Italic (Ctrl+I)"><Italic size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("underline")} title="Underline (Ctrl+U)"><Underline size={16} /></ToolbarButton>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("bold"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Bold (Cmd+B)"
+      >
+        <Bold size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("italic"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Italic (Cmd+I)"
+      >
+        <Italic size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("underline"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Underline (Cmd+U)"
+      >
+        <Underline size={16} />
+      </button>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Alignment */}
-      <ToolbarButton onClick={() => onFormat("justifyLeft")} title="Align Left"><AlignLeft size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("justifyCenter")} title="Align Center"><AlignCenter size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("justifyRight")} title="Align Right"><AlignRight size={16} /></ToolbarButton>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("justifyLeft"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Align Left"
+      >
+        <AlignLeft size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("justifyCenter"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Align Center"
+      >
+        <AlignCenter size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("justifyRight"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Align Right"
+      >
+        <AlignRight size={16} />
+      </button>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Headings & List */}
-      <ToolbarButton onClick={() => onFormat("formatBlock", "H1")} title="Heading 1"><Heading1 size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("formatBlock", "H2")} title="Heading 2"><Heading2 size={16} /></ToolbarButton>
-      <ToolbarButton onClick={() => onFormat("insertUnorderedList")} title="Bullet List"><List size={16} /></ToolbarButton>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("formatBlock", "H1"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Heading 1"
+      >
+        <Heading1 size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("formatBlock", "H2"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Heading 2"
+      >
+        <Heading2 size={16} />
+      </button>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onFormat("insertUnorderedList"); }}
+        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+        title="Bullet List"
+      >
+        <List size={16} />
+      </button>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div className="h-5 w-px bg-slate-200 mx-1" />
 
       {/* Multi-select */}
-      <ToolbarButton onClick={onToggleMultiSelect} title="Multi-Select Mode" active={isMultiSelectMode}>
-        <span className="flex items-center gap-1">
-          <Layers size={16} />
-          {isMultiSelectMode && <span className="text-xs">ON</span>}
-        </span>
-      </ToolbarButton>
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onToggleMultiSelect(); }}
+        className={`p-2 rounded-full transition flex gap-1 items-center ${
+          isMultiSelectMode ? "bg-blue-100 text-blue-600" : "hover:bg-slate-100 text-slate-600 hover:text-black"
+        }`}
+        title="Multi-Select Mode (Combine selections)"
+      >
+        <Layers size={16} />
+        {isMultiSelectMode && <span className="text-xs">ON</span>}
+      </button>
 
       {/* Right actions */}
       <div className="ml-auto flex items-center gap-1">
-        <ToolbarButton onClick={onSave} title="Save"><Save size={16} /></ToolbarButton>
-        <ToolbarButton onClick={onExport} title="Export Markdown"><Download size={16} /></ToolbarButton>
+        <button
+          onMouseDown={(e) => { e.preventDefault(); onSave(); }}
+          className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+          title="Save"
+        >
+          <Save size={16} />
+        </button>
+        <button
+          onMouseDown={(e) => { e.preventDefault(); onExport(); }}
+          className="p-2 hover:bg-slate-100 rounded-full text-slate-600 hover:text-black transition"
+          title="Export Markdown"
+        >
+          <Download size={16} />
+        </button>
       </div>
     </div>
   );
