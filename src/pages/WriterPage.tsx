@@ -433,12 +433,11 @@ Formatting rules (strict): Do not use Markdown syntax. Output plain text or HTML
       {/* Editor area - scrollable */}
       <div id="print-area" className="flex-1 overflow-y-auto px-12 pb-80 scroll-smooth">
         <div className="w-full max-w-4xl mx-auto pt-12">
-          <div
+           <div
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
             spellCheck={false}
-            dangerouslySetInnerHTML={{ __html: docs.docContent }}
             onInput={() => {
               docs.handleContentChange(editorRef);
               updateCursorRef();
