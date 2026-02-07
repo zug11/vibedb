@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Timer, Database, PenTool, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Timer, Database, PenTool, ArrowRight, ArrowLeft, X, ChevronLeft, ChevronRight, Linkedin, Phone, Mail } from "lucide-react";
 import avatarImg from "@/assets/avatar.png";
 
 import artOrganicArchitecture from "@/assets/art/Organic_Architecture.jpeg";
@@ -352,6 +352,55 @@ const Index = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Contact */}
+      <section className="relative px-6 pb-24">
+        <div className="mx-auto max-w-5xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              Contact
+            </h2>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col sm:flex-row gap-6 sm:gap-10"
+          >
+            <a
+              href="https://www.linkedin.com/in/zac-klugman-2184a6140/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition group"
+            >
+              <Linkedin className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium">LinkedIn</span>
+            </a>
+            <a
+              href="tel:+61490075769"
+              className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition group"
+            >
+              <Phone className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium">+61 490 075 769</span>
+            </a>
+            <a
+              href="mailto:zacklugman6@gmail.com"
+              className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition group"
+            >
+              <Mail className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium">zacklugman6@gmail.com</span>
+            </a>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="border-t border-border px-6 py-12">
