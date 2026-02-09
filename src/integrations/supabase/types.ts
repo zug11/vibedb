@@ -16,28 +16,37 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          ai_credits: number
           avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          stripe_customer_id: string | null
+          subscription_tier: string
           trial_start: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_credits?: number
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          stripe_customer_id?: string | null
+          subscription_tier?: string
           trial_start?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_credits?: number
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          stripe_customer_id?: string | null
+          subscription_tier?: string
           trial_start?: string
           updated_at?: string
           user_id?: string
