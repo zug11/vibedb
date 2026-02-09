@@ -848,9 +848,9 @@ const VibeDBPage = () => {
     <div className="flex h-screen flex-col bg-background">
       {/* Top Bar */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition">
-          <ArrowLeft size={18} />
-        </Link>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <DatabaseZap size={20} />
+        </div>
         <div className="flex items-center gap-2">
           <Database size={20} className="text-accent" />
           <span className="text-lg font-bold">VibeDB</span>
