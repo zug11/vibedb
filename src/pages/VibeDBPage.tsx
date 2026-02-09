@@ -213,6 +213,39 @@ function useHistory<T>(initial: T): [T, (action: T | ((prev: T) => T)) => void, 
   return [state, setState, undo, redo, idx > 0, idx < history.length - 1];
 }
 
+// ─── User Menu ──────────────────────────────────────────
+const UserMenu = () => {
+  const { profile, isTrialActive, trialDaysLeft, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className="flex h-8 items-center gap-2 rounded-lg bg-secondary px-2.5 text-sm hover:bg-secondary/80 transition">
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt="" className="h-5 w-5 rounded-full" />
+        ) : (
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+            {(profile?.display_name || "U")[0].toUpperCase()}
+          </div>
+        )}
+        <span className="max-w-[100px] truncate text-xs font-medium">{profile?.display_name || "Account"}</span>
+        {isTrialActive && (
+          <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{trialDaysLeft}d left</span>
+        )}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-48 rounded-xl bg-card border border-border shadow-xl overflow-hidden z-50">
+          <div className="px-3 py-2 border-b border-border">
+            <div className="text-xs font-semibold truncate">{profile?.display_name}</div>
+            {isTrialActive && <div className="text-[10px] text-muted-foreground">{trialDaysLeft} days left in trial</div>}
+            {!isTrialActive && <div className="text-[10px] text-destructive">Trial expired</div>}
+          </div>
+          <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition">Sign out</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Component ─────────────────────────────────────
 const VibeDBPage = () => {
   const [prompt, setPrompt] = useState("");
