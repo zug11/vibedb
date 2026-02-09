@@ -290,6 +290,7 @@ const VibeDBPage = () => {
         setShowImportModal(false); setShowAuditModal(false); setShowBatchModal(false);
         setShowAddTableMenu(false); setShowExportMenu(false); setShowMockDataModal(false);
         setConnectionMode(null); setEditingColumn(null); setShowDiff(false);
+        setShowDeployModal(false);
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); undo(); }
       if ((e.metaKey || e.ctrlKey) && e.key === "y") { e.preventDefault(); redo(); }
