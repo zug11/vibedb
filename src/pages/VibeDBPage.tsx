@@ -1319,6 +1319,89 @@ const VibeDBPage = () => {
         )}
       </AnimatePresence>
 
+      {/* Deploy Modal */}
+      <AnimatePresence>
+        {showDeployModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 backdrop-blur-sm" onClick={() => setShowDeployModal(false)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="mx-4 w-full max-w-lg rounded-2xl bg-card p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold flex items-center gap-2"><Rocket size={18} /> Deploy to Supabase</h2>
+                <button onClick={() => setShowDeployModal(false)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary"><X size={16} /></button>
+              </div>
+
+              {!deployConnected ? (
+                <>
+                  <p className="mb-4 text-sm text-muted-foreground">Connect to your Supabase project to deploy your schema directly.</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Supabase Project URL</label>
+                      <input value={deployUrl} onChange={e => setDeployUrl(e.target.value)} placeholder="https://your-project.supabase.co"
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Service Role Key</label>
+                      <input value={deployKey} onChange={e => setDeployKey(e.target.value)} type="password" placeholder="eyJhbGci..."
+                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono outline-none focus:border-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Find these in your Supabase dashboard → Settings → API. Your key is stored locally in this browser only.</p>
+                  </div>
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button onClick={() => setShowDeployModal(false)} className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/80">Cancel</button>
+                    <button onClick={handleTestConnection} disabled={isTesting || !deployUrl.trim() || !deployKey.trim()} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+                      {isTesting ? <Loader2 size={14} className="animate-spin" /> : <Plug size={14} />}
+                      {isTesting ? "Connecting..." : "Test Connection"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 flex items-center gap-2 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2">
+                    <CheckCircle2 size={16} className="text-accent" />
+                    <span className="text-sm font-medium text-accent">Connected to {deployUrl.replace(/https?:\/\//, "").split(".")[0]}</span>
+                    <button onClick={handleDisconnect} className="ml-auto text-xs text-muted-foreground hover:text-foreground">Disconnect</button>
+                  </div>
+
+                  {canvasItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">Add tables to your schema before deploying.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-lg bg-background border border-border p-3">
+                        <div className="text-xs font-semibold text-muted-foreground mb-2">Schema to deploy</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {canvasItems.map(t => (
+                            <span key={t.id} className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium">{t.name} ({t.columns.length} cols)</span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground"><AlertCircle size={12} className="inline mr-1" />This will run CREATE TABLE statements. Existing tables with the same name may cause errors.</p>
+                    </div>
+                  )}
+
+                  {deployResults && (
+                    <div className="mt-3 max-h-48 overflow-auto rounded-lg bg-background border border-border p-3 space-y-1">
+                      {deployResults.map((r, i) => (
+                        <div key={i} className={`text-xs font-mono flex items-start gap-2 ${r.success ? "text-accent" : "text-destructive"}`}>
+                          {r.success ? <CheckCircle2 size={12} className="mt-0.5 shrink-0" /> : <AlertCircle size={12} className="mt-0.5 shrink-0" />}
+                          <span className="break-all">{r.statement}{r.error ? ` — ${r.error}` : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex justify-end gap-2">
+                    <button onClick={() => setShowDeployModal(false)} className="rounded-lg bg-secondary px-4 py-2 text-sm font-semibold hover:bg-secondary/80">Close</button>
+                    <button onClick={handleDeploy} disabled={isDeploying || canvasItems.length === 0} className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50">
+                      {isDeploying ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+                      {isDeploying ? "Deploying..." : "Deploy Schema"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Audit Modal */}
       <SchemaAuditModal
         open={showAuditModal}
