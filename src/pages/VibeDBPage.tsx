@@ -5,7 +5,7 @@ import {
   Wand2, Terminal, ArrowLeft, LayoutTemplate, ArrowUpDown,
   Table as TableIcon, Code, Upload, ShieldCheck, Edit3, ChevronDown,
   Settings, GitCompare, Key, Hash, LinkIcon, GripVertical, DatabaseZap,
-  Box, Columns, Webhook, FileText
+  Box, Columns, Webhook, FileText, Rocket, Plug, CheckCircle2, AlertCircle
 } from "lucide-react";
 // react-router-dom Link removed (standalone app)
 import { v4 as uuidv4 } from "uuid";
