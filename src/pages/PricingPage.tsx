@@ -17,6 +17,7 @@ const TIERS = {
     productId: "prod_Twtvm5lU8EdiOJ",
     credits: 50,
     icon: Star,
+    popular: false,
     features: [
       "50 AI credits/month",
       "Visual schema designer",

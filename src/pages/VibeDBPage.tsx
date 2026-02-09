@@ -215,7 +215,7 @@ function useHistory<T>(initial: T): [T, (action: T | ((prev: T) => T)) => void, 
 
 // ─── User Menu ──────────────────────────────────────────
 const UserMenu = () => {
-  const { profile, isTrialActive, trialDaysLeft, signOut } = useAuth();
+  const { profile, subscription, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
