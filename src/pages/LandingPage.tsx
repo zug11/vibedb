@@ -76,7 +76,7 @@ const LandingPage = () => {
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground"
           >
             <Sparkles size={14} className="text-primary" />
-            14-day free trial · No credit card required
+            AI-powered schema design · Credit-based pricing
           </motion.div>
 
           <motion.h1
