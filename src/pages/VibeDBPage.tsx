@@ -948,6 +948,9 @@ const VibeDBPage = () => {
           <button onClick={undo} disabled={!canUndo} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30" title="Undo"><Undo2 size={16} /></button>
           <button onClick={redo} disabled={!canRedo} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary disabled:opacity-30" title="Redo"><Redo2 size={16} /></button>
         </div>
+
+        {/* User Menu */}
+        <UserMenu />
       </div>
 
       {/* Toolbar */}
