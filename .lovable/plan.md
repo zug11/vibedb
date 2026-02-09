@@ -1,51 +1,82 @@
 
 
-# Landing Page for VibeDB
+# User-Owned API Keys for VibeDB AI
 
-## Overview
-Add a public landing page at `/` that showcases VibeDB -- what it does, key features, and a clear call-to-action to sign up or sign in. The current protected route moves to `/app`.
+## Problem
+Currently, all AI calls in VibeDB go through the `LOVABLE_API_KEY`, which means **your** Lovable credits get consumed every time any user generates a schema, runs an audit, etc. You want users to pay for their own AI usage.
 
-## What Gets Built
+## Solution
+Let users bring their own OpenAI-compatible API key (e.g., OpenAI, Google AI, or any provider). Their key is stored securely per-user in the database and used server-side for AI calls instead of your Lovable key.
 
-**Hero Section**
-- VibeDB logo + tagline ("Design databases visually. Deploy instantly.")
-- Short description of the product
-- Two CTAs: "Get Started Free" and "Sign In"
-- Subtle animated gradient background matching the existing warm theme
+## What Changes
 
-**Features Section**
-- 3-4 feature cards highlighting: Visual Schema Designer, AI-Powered Suggestions, One-Click Deploy to Supabase, Export to SQL/Prisma/Drizzle
-- Uses existing card styling and lucide icons
+### 1. Database: Store user API keys (encrypted at rest)
+- Add an `ai_api_key` column to the `profiles` table (encrypted text, nullable)
+- Add an `ai_provider` column (e.g., "openai", "google") so users can pick their provider
+- RLS already restricts profiles to owner-only access
 
-**How It Works Section**
-- 3-step flow: Design -> Generate -> Deploy
-- Simple numbered steps with icons
+### 2. Edge Function: Use user's key instead of yours
+- Update `vibedb-ai` to accept the user's API key from the request (passed via authorization header -- the user is already authenticated)
+- Look up the user's `ai_api_key` from their profile using the service role
+- Route to the appropriate provider endpoint based on `ai_provider`
+- Fall back to `LOVABLE_API_KEY` only if no user key is set (optional -- or block entirely)
 
-**Footer**
-- Minimal footer with "Built with VibeDB" and links
+### 3. UI: Settings panel for API key
+- Add an "AI Settings" section (accessible from the user menu or a settings icon)
+- Simple form: provider dropdown (OpenAI / Google AI) + API key input
+- Key is saved to their profile
+- Show a status indicator (key configured vs. not configured)
 
-**Trial Banner**
-- "14-day free trial -- No credit card required" callout near the CTA
+### 4. Client-side: No changes to `callAI`
+- The edge function handles key resolution server-side, so the existing `callAI` helper stays the same
 
-## Routing Changes
-- `/` becomes the public landing page (new `LandingPage.tsx`)
-- `/app` becomes the protected VibeDB workspace (existing `VibeDBPage`)
-- `/auth` stays the same
-- Update navigation: landing page CTAs link to `/auth`, after login redirect to `/app`
+## Flow
+
+```text
+User action (e.g. "Generate Schema")
+       |
+       v
+callAI() --> supabase.functions.invoke("vibedb-ai")
+       |
+       v
+Edge function reads user's JWT --> looks up profiles.ai_api_key
+       |
+       v
+  [key found?] --yes--> Call OpenAI/Google directly with user's key
+       |
+      no
+       |
+       v
+  Return error: "Please add your API key in Settings"
+```
 
 ## Technical Details
 
+### Migration SQL
+```sql
+ALTER TABLE public.profiles
+  ADD COLUMN ai_api_key TEXT,
+  ADD COLUMN ai_provider TEXT DEFAULT 'openai';
+```
+
+### Edge Function Changes (`vibedb-ai/index.ts`)
+- Extract user ID from the `Authorization` JWT
+- Query `profiles` for `ai_api_key` and `ai_provider`
+- If `ai_provider = 'openai'`: call `https://api.openai.com/v1/chat/completions`
+- If `ai_provider = 'google'`: call Google's Gemini API endpoint
+- Remove dependency on `LOVABLE_API_KEY` for user requests
+
+### New UI Component
+- `src/components/vibedb/AISettingsModal.tsx` -- modal with provider picker + key input
+- Button added to the `UserMenu` dropdown to open it
+- Visual indicator in header when no key is configured
+
+### Files Modified
+- `supabase/functions/vibedb-ai/index.ts` -- use user's key
+- `src/pages/VibeDBPage.tsx` -- add AI settings button to UserMenu
+- `src/hooks/use-auth.tsx` -- include `ai_provider` / key-exists flag in profile
+
 ### New Files
-- `src/pages/LandingPage.tsx` -- Full landing page component using framer-motion for scroll animations, existing Tailwind theme tokens (--gradient-warm, --gradient-hero, --shadow-glow), and lucide-react icons
-
-### Modified Files
-- `src/App.tsx` -- Update routes: `/` renders `LandingPage`, `/app` renders `ProtectedRoute > VibeDBPage`
-- `src/pages/AuthPage.tsx` -- Update post-login redirect target to `/app`
-- `src/hooks/use-auth.tsx` -- No changes needed (redirect handled in App.tsx route guards)
-
-### Design Approach
-- Matches existing color scheme (warm orange primary, accent green, dark foreground)
-- Uses fonts already loaded (Space Grotesk for headings, DM Sans/Inter for body)
-- Responsive -- works on mobile and desktop
-- No new dependencies required
+- `src/components/vibedb/AISettingsModal.tsx`
+- Migration file for new columns
 
