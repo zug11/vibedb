@@ -228,16 +228,16 @@ const UserMenu = () => {
           </div>
         )}
         <span className="max-w-[100px] truncate text-xs font-medium">{profile?.display_name || "Account"}</span>
-        {isTrialActive && (
-          <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{trialDaysLeft}d left</span>
+        {subscription.subscribed && (
+          <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">{subscription.credits} credits</span>
         )}
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-48 rounded-xl bg-card border border-border shadow-xl overflow-hidden z-50">
           <div className="px-3 py-2 border-b border-border">
             <div className="text-xs font-semibold truncate">{profile?.display_name}</div>
-            {isTrialActive && <div className="text-[10px] text-muted-foreground">{trialDaysLeft} days left in trial</div>}
-            {!isTrialActive && <div className="text-[10px] text-destructive">Trial expired</div>}
+            {subscription.subscribed && <div className="text-[10px] text-muted-foreground">{subscription.tier} · {subscription.credits} credits</div>}
+            {!subscription.subscribed && <div className="text-[10px] text-destructive">No active subscription</div>}
           </div>
           <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition">Sign out</button>
         </div>
