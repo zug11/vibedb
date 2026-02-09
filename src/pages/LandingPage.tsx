@@ -197,7 +197,7 @@ const LandingPage = () => {
           className="mx-auto max-w-2xl rounded-3xl border border-border bg-card p-10 text-center shadow-lg md:p-14"
         >
           <h2 className="text-2xl font-bold md:text-3xl">Ready to build your database?</h2>
-          <p className="mt-3 text-muted-foreground">Start your 14-day free trial. No credit card required.</p>
+          <p className="mt-3 text-muted-foreground">Plans start at $10/month with AI credits included.</p>
           <Button size="lg" className="mt-6 gap-2 shadow-glow" asChild>
             <Link to="/auth">
               Get Started Free <ArrowRight size={16} />
