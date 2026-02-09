@@ -8,6 +8,7 @@ import {
   Box, Columns, Webhook, FileText, Rocket, Plug, CheckCircle2, AlertCircle
 } from "lucide-react";
 // react-router-dom Link removed (standalone app)
+import { useAuth } from "@/hooks/use-auth";
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
