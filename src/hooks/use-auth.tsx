@@ -1,14 +1,21 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+
+interface SubscriptionState {
+  subscribed: boolean;
+  tier: "none" | "standard" | "pro";
+  credits: number;
+  subscription_end: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   profile: { display_name: string | null; avatar_url: string | null; trial_start: string } | null;
-  isTrialActive: boolean;
-  trialDaysLeft: number;
+  subscription: SubscriptionState;
+  refreshSubscription: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -20,16 +27,34 @@ export const useAuth = () => {
   return ctx;
 };
 
-const TRIAL_DAYS = 14;
+const defaultSub: SubscriptionState = { subscribed: false, tier: "none", credits: 0, subscription_end: null };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
+  const [subscription, setSubscription] = useState<SubscriptionState>(defaultSub);
+
+  const refreshSubscription = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (!error && data && !data.error) {
+        setSubscription({
+          subscribed: data.subscribed ?? false,
+          tier: data.tier ?? "none",
+          credits: data.credits ?? 0,
+          subscription_end: data.subscription_end ?? null,
+        });
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [user]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -41,12 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => authSub.unsubscribe();
   }, []);
 
+  // Fetch profile
   useEffect(() => {
     if (!user) {
       setProfile(null);
+      setSubscription(defaultSub);
       return;
     }
     const fetchProfile = async () => {
@@ -60,22 +87,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchProfile();
   }, [user]);
 
-  const trialStart = profile?.trial_start ? new Date(profile.trial_start) : null;
-  const now = new Date();
-  const trialDaysLeft = trialStart
-    ? Math.max(0, TRIAL_DAYS - Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
-  const isTrialActive = trialDaysLeft > 0;
+  // Check subscription on login + periodic refresh
+  useEffect(() => {
+    if (!user) return;
+    refreshSubscription();
+    const interval = setInterval(refreshSubscription, 60000);
+    return () => clearInterval(interval);
+  }, [user, refreshSubscription]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
+    setSubscription(defaultSub);
   };
 
+  // Legacy compat
+  const isTrialActive = subscription.subscribed;
+  const trialDaysLeft = 0;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, isTrialActive, trialDaysLeft, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, subscription, refreshSubscription, signOut }}>
       {children}
     </AuthContext.Provider>
   );

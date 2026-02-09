@@ -1,8 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+// Credit costs per action type
+const CREDIT_COSTS: Record<string, number> = {
+  "generate-schema": 3,
+  "batch-command": 3,
+  "inspect-schema": 2,
+  "generate-sql": 1,
+  "generate-mock-data": 1,
+  "generate-query": 1,
+  "smart-add-column": 1,
 };
 
 serve(async (req) => {
@@ -13,6 +25,60 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // ─── Credit check ───────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+
+    if (authHeader) {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { persistSession: false } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseAdmin.auth.getUser(token);
+      userId = userData.user?.id ?? null;
+
+      if (userId) {
+        const creditCost = CREDIT_COSTS[type] ?? 1;
+
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("ai_credits, subscription_tier")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!profile || profile.subscription_tier === "none") {
+          return new Response(JSON.stringify({
+            error: "Active subscription required. Please subscribe to use AI features.",
+            code: "NO_SUBSCRIPTION",
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        if ((profile.ai_credits ?? 0) < creditCost) {
+          return new Response(JSON.stringify({
+            error: `Not enough credits. This action costs ${creditCost} credit${creditCost > 1 ? "s" : ""}. You have ${profile.ai_credits ?? 0}. Buy more credits to continue.`,
+            code: "NO_CREDITS",
+            credits_remaining: profile.ai_credits ?? 0,
+            credits_required: creditCost,
+          }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Deduct credits
+        await supabaseAdmin.from("profiles").update({
+          ai_credits: (profile.ai_credits ?? 0) - creditCost,
+        }).eq("user_id", userId);
+      }
+    }
+
+    // ─── AI request ─────────────────────────────────────
     let systemPrompt = "";
     let userPrompt = prompt;
 
@@ -87,6 +153,19 @@ For foreign keys, set isForeignKey: true and linkedTable: 'TargetTableName'.`;
       console.error("AI gateway error:", response.status, errorText);
       
       if (response.status === 429) {
+        // Refund credits on rate limit
+        if (userId) {
+          const supabaseAdmin = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+            { auth: { persistSession: false } }
+          );
+          const creditCost = CREDIT_COSTS[type] ?? 1;
+          const { data: profile } = await supabaseAdmin.from("profiles").select("ai_credits").eq("user_id", userId).maybeSingle();
+          if (profile) {
+            await supabaseAdmin.from("profiles").update({ ai_credits: (profile.ai_credits ?? 0) + creditCost }).eq("user_id", userId);
+          }
+        }
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -110,7 +189,19 @@ For foreign keys, set isForeignKey: true and linkedTable: 'TargetTableName'.`;
     
     console.log(`Successfully processed ${type} request`);
 
-    return new Response(JSON.stringify({ result: content }), {
+    // Return remaining credits in response
+    let creditsRemaining: number | undefined;
+    if (userId) {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { persistSession: false } }
+      );
+      const { data: profile } = await supabaseAdmin.from("profiles").select("ai_credits").eq("user_id", userId).maybeSingle();
+      creditsRemaining = profile?.ai_credits ?? 0;
+    }
+
+    return new Response(JSON.stringify({ result: content, credits_remaining: creditsRemaining }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
