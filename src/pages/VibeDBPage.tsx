@@ -256,6 +256,15 @@ const VibeDBPage = () => {
   const [isGeneratingMockData, setIsGeneratingMockData] = useState(false);
   const [isGeneratingSidebar, setIsGeneratingSidebar] = useState(false);
 
+  // Deploy
+  const [showDeployModal, setShowDeployModal] = useState(false);
+  const [deployUrl, setDeployUrl] = useState(() => localStorage.getItem("vibedb_deploy_url") || "");
+  const [deployKey, setDeployKey] = useState(() => localStorage.getItem("vibedb_deploy_key") || "");
+  const [deployConnected, setDeployConnected] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployResults, setDeployResults] = useState<{ statement: string; success: boolean; error?: string }[] | null>(null);
+
   // Schema Diff
   const [diffBase, setDiffBase] = useState<TableNode[] | null>(null);
   const [showDiff, setShowDiff] = useState(false);
