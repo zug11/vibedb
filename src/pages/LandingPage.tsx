@@ -109,7 +109,7 @@ const LandingPage = () => {
           >
             <Button size="lg" className="gap-2 shadow-glow" asChild>
               <Link to="/auth">
-                Get Started Free <ArrowRight size={16} />
+                Get Started <ArrowRight size={16} />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
