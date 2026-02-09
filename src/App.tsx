@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import VibeDBPage from "./pages/VibeDBPage";
 import AuthPage from "./pages/AuthPage";
 import LandingPage from "./pages/LandingPage";
+import PricingPage from "./pages/PricingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/app" element={<ProtectedRoute><VibeDBPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

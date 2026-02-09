@@ -76,7 +76,7 @@ const LandingPage = () => {
             className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground"
           >
             <Sparkles size={14} className="text-primary" />
-            14-day free trial · No credit card required
+            AI-powered schema design · Credit-based pricing
           </motion.div>
 
           <motion.h1
@@ -197,10 +197,10 @@ const LandingPage = () => {
           className="mx-auto max-w-2xl rounded-3xl border border-border bg-card p-10 text-center shadow-lg md:p-14"
         >
           <h2 className="text-2xl font-bold md:text-3xl">Ready to build your database?</h2>
-          <p className="mt-3 text-muted-foreground">Start your 14-day free trial. No credit card required.</p>
+          <p className="mt-3 text-muted-foreground">Plans start at $10/month with AI credits included.</p>
           <Button size="lg" className="mt-6 gap-2 shadow-glow" asChild>
-            <Link to="/auth">
-              Get Started Free <ArrowRight size={16} />
+            <Link to="/pricing">
+              View Pricing <ArrowRight size={16} />
             </Link>
           </Button>
         </motion.div>
