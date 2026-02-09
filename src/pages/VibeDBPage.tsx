@@ -7,7 +7,7 @@ import {
   Settings, GitCompare, Key, Hash, LinkIcon, GripVertical, DatabaseZap,
   Box, Columns, Webhook, FileText
 } from "lucide-react";
-import { Link } from "react-router-dom";
+// react-router-dom Link removed (standalone app)
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -848,9 +848,9 @@ const VibeDBPage = () => {
     <div className="flex h-screen flex-col bg-background">
       {/* Top Bar */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground hover:bg-secondary/80 transition">
-          <ArrowLeft size={18} />
-        </Link>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <DatabaseZap size={20} />
+        </div>
         <div className="flex items-center gap-2">
           <Database size={20} className="text-accent" />
           <span className="text-lg font-bold">VibeDB</span>
