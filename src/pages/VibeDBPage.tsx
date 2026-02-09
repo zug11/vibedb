@@ -427,6 +427,61 @@ const VibeDBPage = () => {
     }
   };
 
+  // ─── Deploy to Supabase ──────────────────────────────
+  const handleTestConnection = async () => {
+    if (!deployUrl || !deployKey) { addToast("Enter Supabase URL and service role key", "error"); return; }
+    setIsTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("vibedb-deploy", {
+        body: { supabaseUrl: deployUrl, serviceRoleKey: deployKey, action: "test" },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      setDeployConnected(true);
+      localStorage.setItem("vibedb_deploy_url", deployUrl);
+      localStorage.setItem("vibedb_deploy_key", deployKey);
+      addToast("Connected to Supabase!", "success");
+    } catch (e: any) {
+      addToast("Connection failed: " + e.message, "error");
+      setDeployConnected(false);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    if (canvasItems.length === 0) { addToast("No tables to deploy", "error"); return; }
+    const sql = generateSQL(canvasItems);
+    setIsDeploying(true);
+    setDeployResults(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("vibedb-deploy", {
+        body: { sql, supabaseUrl: deployUrl, serviceRoleKey: deployKey, action: "deploy" },
+      });
+      if (error) throw new Error(error.message);
+      setDeployResults(data.results || []);
+      if (data.success) {
+        addToast("Schema deployed successfully!", "success");
+      } else {
+        addToast(data.message || "Deploy had errors", "warning");
+      }
+    } catch (e: any) {
+      addToast("Deploy failed: " + e.message, "error");
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const handleDisconnect = () => {
+    setDeployConnected(false);
+    setDeployUrl("");
+    setDeployKey("");
+    setDeployResults(null);
+    localStorage.removeItem("vibedb_deploy_url");
+    localStorage.removeItem("vibedb_deploy_key");
+    addToast("Disconnected", "info");
+  };
+
   // ─── Auto Layout ──────────────────────────────────────
   const handleAutoLayout = () => {
     if (canvasItems.length === 0) return;
