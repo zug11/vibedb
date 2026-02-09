@@ -199,8 +199,8 @@ const LandingPage = () => {
           <h2 className="text-2xl font-bold md:text-3xl">Ready to build your database?</h2>
           <p className="mt-3 text-muted-foreground">Plans start at $10/month with AI credits included.</p>
           <Button size="lg" className="mt-6 gap-2 shadow-glow" asChild>
-            <Link to="/auth">
-              Get Started Free <ArrowRight size={16} />
+            <Link to="/pricing">
+              View Pricing <ArrowRight size={16} />
             </Link>
           </Button>
         </motion.div>

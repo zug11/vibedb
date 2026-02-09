@@ -36,6 +36,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route path="/app" element={<ProtectedRoute><VibeDBPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

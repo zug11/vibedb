@@ -143,7 +143,7 @@ const AuthPage = () => {
         </p>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          14-day free trial • No credit card required
+          Subscription required for AI features · <a href="/pricing" className="text-primary hover:underline">View pricing</a>
         </p>
       </motion.div>
     </div>
