@@ -1007,6 +1007,10 @@ const VibeDBPage = () => {
             </div>
           )}
         </div>
+        <button onClick={() => setShowDeployModal(true)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${deployConnected ? "bg-accent text-accent-foreground hover:bg-accent/90" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
+          {deployConnected ? <CheckCircle2 size={14} /> : <Rocket size={14} />}
+          {deployConnected ? "Deploy" : "Connect & Deploy"}
+        </button>
       </div>
 
       {/* Main Content */}
