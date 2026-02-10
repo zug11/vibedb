@@ -1112,8 +1112,9 @@ const VibeDBPage = () => {
                 <div className="flex items-center justify-between rounded-t-xl bg-secondary/50 px-3 py-2" style={{ height: HEADER_HEIGHT }}
                   onMouseDown={e => { if (editingTable === table.id || (e.target as HTMLElement).closest('button')) e.stopPropagation(); }}>
                   {editingTable === table.id ? (
-                    <input autoFocus value={table.name} onChange={e => updateTableName(table.id, e.target.value)}
-                      onBlur={() => setEditingTable(null)} onKeyDown={e => e.key === "Enter" && setEditingTable(null)}
+                    <input autoFocus value={editingTableName} onChange={e => setEditingTableName(e.target.value)}
+                      onBlur={() => { updateTableName(table.id, editingTableName); setEditingTable(null); }} 
+                      onKeyDown={e => { if (e.key === "Enter") { updateTableName(table.id, editingTableName); setEditingTable(null); } e.stopPropagation(); }}
                       onMouseDown={e => e.stopPropagation()}
                       className="w-full border-none bg-transparent text-sm font-bold outline-none" onClick={e => e.stopPropagation()} />
                   ) : (
