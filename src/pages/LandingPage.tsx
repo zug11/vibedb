@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Database, Sparkles, Rocket, FileCode2, ArrowRight, Layers, Wand2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
