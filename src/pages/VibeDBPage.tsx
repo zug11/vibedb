@@ -261,6 +261,7 @@ const VibeDBPage = () => {
   // Feature states
   const [expertMode, setExpertMode] = useState(false);
   const [editingTable, setEditingTable] = useState<string | null>(null);
+  const [editingTableName, setEditingTableName] = useState("");
   const [editingColumn, setEditingColumn] = useState<{ tableId: string; columnId: string } | null>(null);
   const [generatingTableId, setGeneratingTableId] = useState<string | null>(null);
 
