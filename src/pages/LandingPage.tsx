@@ -121,8 +121,8 @@ const LandingPage = () => {
             className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
             <Button size="lg" className="gap-2 shadow-glow" asChild>
-              <Link to="/auth">
-                Get Started <ArrowRight size={16} />
+              <Link to={ctaLink}>
+                {ctaLabel} <ArrowRight size={16} />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
