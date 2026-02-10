@@ -1122,8 +1122,8 @@ const VibeDBPage = () => {
                   )}
                   <div className="flex items-center gap-0.5">
                     {editingTable !== table.id && (
-                      <button onClick={e => { e.stopPropagation(); setEditingTable(table.id); }} onMouseDown={e => e.stopPropagation()} className="text-muted-foreground hover:text-foreground p-1" title="Rename table">
-                        <Edit3 size={12} />
+                      <button onClick={e => { e.stopPropagation(); e.preventDefault(); console.log("RENAME CLICKED for table:", table.id, table.name); setEditingTable(table.id); }} onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }} className="text-muted-foreground hover:text-foreground p-1.5 rounded hover:bg-secondary/80" title="Rename table">
+                        <Edit3 size={14} />
                       </button>
                     )}
                     <button onClick={e => { e.stopPropagation(); handleSmartAddColumn(table.id); }} className="text-accent hover:opacity-80 p-1" title="AI Suggest Column">
