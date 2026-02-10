@@ -7,7 +7,7 @@ import {
   Settings, GitCompare, Key, Hash, LinkIcon, GripVertical, DatabaseZap,
   Box, Columns, Webhook, FileText, Rocket, Plug, CheckCircle2, AlertCircle
 } from "lucide-react";
-// react-router-dom Link removed (standalone app)
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
@@ -237,7 +237,7 @@ const UserMenu = () => {
           <div className="px-3 py-2 border-b border-border">
             <div className="text-xs font-semibold truncate">{profile?.display_name}</div>
             {subscription.subscribed && <div className="text-[10px] text-muted-foreground">{subscription.tier} · {subscription.credits} credits</div>}
-            {!subscription.subscribed && <div className="text-[10px] text-destructive">No active subscription</div>}
+            {!subscription.subscribed && <Link to="/pricing" className="text-[10px] text-primary hover:underline">Subscribe to a plan →</Link>}
           </div>
           <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition">Sign out</button>
         </div>
