@@ -794,10 +794,9 @@ const VibeDBPage = () => {
     }
   };
   const updateTableName = (id: string, name: string) => {
-    setCanvasItems(prev => prev.map(t => t.id === id ? { ...t, name } : t));
-    // Update FK references
     setCanvasItems(prev => prev.map(t => ({
       ...t,
+      name: t.id === id ? name : t.name,
       columns: t.columns.map(c => c.linkedTableId === id ? { ...c, linkedTable: name } : c),
     })));
   };
