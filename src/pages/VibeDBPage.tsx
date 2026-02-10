@@ -1114,7 +1114,7 @@ const VibeDBPage = () => {
                       onBlur={() => setEditingTable(null)} onKeyDown={e => e.key === "Enter" && setEditingTable(null)}
                       className="w-full border-none bg-transparent text-sm font-bold outline-none" onClick={e => e.stopPropagation()} />
                   ) : (
-                    <span className="text-sm font-bold flex items-center gap-1.5" onDoubleClick={() => expertMode && setEditingTable(table.id)}>
+                    <span className="text-sm font-bold flex items-center gap-1.5 cursor-pointer" onDoubleClick={() => setEditingTable(table.id)} title="Double-click to rename">
                       <TableIcon size={12} className="text-muted-foreground" /> {table.name}
                     </span>
                   )}
