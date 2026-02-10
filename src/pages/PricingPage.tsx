@@ -77,7 +77,7 @@ const PricingPage = () => {
         body: { priceId: TIERS[tier].priceId, mode: "subscription" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       console.error("Checkout error:", err);
     } finally {
@@ -94,7 +94,7 @@ const PricingPage = () => {
     try {
       const { data, error } = await supabase.functions.invoke("buy-credits");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       console.error("Top-up error:", err);
     } finally {
@@ -106,7 +106,7 @@ const PricingPage = () => {
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       console.error("Portal error:", err);
     }
