@@ -1108,20 +1108,24 @@ const VibeDBPage = () => {
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between rounded-t-xl bg-secondary/50 px-3 py-2" style={{ height: HEADER_HEIGHT }}>
+                <div className="flex items-center justify-between rounded-t-xl bg-secondary/50 px-3 py-2" style={{ height: HEADER_HEIGHT }}
+                  onMouseDown={e => { if (editingTable === table.id) e.stopPropagation(); }}>
                   {editingTable === table.id ? (
                     <input autoFocus value={table.name} onChange={e => updateTableName(table.id, e.target.value)}
                       onBlur={() => setEditingTable(null)} onKeyDown={e => e.key === "Enter" && setEditingTable(null)}
+                      onMouseDown={e => e.stopPropagation()}
                       className="w-full border-none bg-transparent text-sm font-bold outline-none" onClick={e => e.stopPropagation()} />
                   ) : (
-                    <span className="text-sm font-bold flex items-center gap-1.5 cursor-pointer" 
-                      onMouseDown={e => e.stopPropagation()}
-                      onDoubleClick={() => setEditingTable(table.id)} 
-                      title="Double-click to rename">
+                    <span className="text-sm font-bold flex items-center gap-1.5">
                       <TableIcon size={12} className="text-muted-foreground" /> {table.name}
                     </span>
                   )}
                   <div className="flex items-center gap-0.5">
+                    {editingTable !== table.id && (
+                      <button onClick={e => { e.stopPropagation(); setEditingTable(table.id); }} onMouseDown={e => e.stopPropagation()} className="text-muted-foreground hover:text-foreground p-1" title="Rename table">
+                        <Edit3 size={12} />
+                      </button>
+                    )}
                     <button onClick={e => { e.stopPropagation(); handleSmartAddColumn(table.id); }} className="text-accent hover:opacity-80 p-1" title="AI Suggest Column">
                       {generatingTableId === table.id ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
                     </button>
