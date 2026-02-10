@@ -237,7 +237,7 @@ const UserMenu = () => {
           <div className="px-3 py-2 border-b border-border">
             <div className="text-xs font-semibold truncate">{profile?.display_name}</div>
             {subscription.subscribed && <div className="text-[10px] text-muted-foreground">{subscription.tier} · {subscription.credits} credits</div>}
-            {!subscription.subscribed && <div className="text-[10px] text-destructive">No active subscription</div>}
+            {!subscription.subscribed && <Link to="/pricing" className="text-[10px] text-primary hover:underline">Subscribe to a plan →</Link>}
           </div>
           <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-secondary transition">Sign out</button>
         </div>
