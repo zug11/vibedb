@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Database, Sparkles, Rocket, FileCode2, ArrowRight, Layers, Wand2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -42,6 +43,10 @@ const steps = [
 ];
 
 const LandingPage = () => {
+  const { user, subscription } = useAuth();
+  const ctaLink = user ? (subscription.subscribed ? "/app" : "/pricing") : "/auth";
+  const ctaLabel = user ? (subscription.subscribed ? "Go to App" : "View Plans") : "Get Started";
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -54,12 +59,20 @@ const LandingPage = () => {
             <span className="text-lg font-bold">VibeDB</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/auth">Sign in</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/auth">Get Started</Link>
-            </Button>
+            {user ? (
+              <Button size="sm" asChild>
+                <Link to={subscription.subscribed ? "/app" : "/pricing"}>{subscription.subscribed ? "Go to App" : "View Plans"}</Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">Sign in</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/auth">Get Started</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -108,8 +121,8 @@ const LandingPage = () => {
             className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
             <Button size="lg" className="gap-2 shadow-glow" asChild>
-              <Link to="/auth">
-                Get Started <ArrowRight size={16} />
+              <Link to={ctaLink}>
+                {ctaLabel} <ArrowRight size={16} />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
